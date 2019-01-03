@@ -14,3 +14,4 @@ ExternalProject_Add(
 )
 
 SET( EIGEN_INCLUDE_DIR ${CMAKE_BINARY_DIR}/Eigen-source CACHE STRING "Eigen Include Dir" )
+SET( $ENV{EIGEN_INCLUDE_DIR} "${CMAKE_BINARY_DIR}/Eigen-source" )
