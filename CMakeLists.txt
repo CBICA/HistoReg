@@ -51,7 +51,10 @@ FIND_PACKAGE(OpenCV)
       return()
     ENDIF()
 
-  ENDIF()
+  ELSE()
+    SET( $ENV{CMAKE_PREFIX_PATH} "$ENV{CMAKE_PREFIX_PATH};${PROJECT_BINARY_DIR}/OpenCV-build" )
+  ENDIF()  
+  
 #ENDIF()
     
 IF (APPLE)
