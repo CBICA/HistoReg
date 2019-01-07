@@ -8,7 +8,7 @@ SET(CMAKE_CXX_STANDARD_REQUIRED YES)
 ExternalProject_Add( 
   OpenCV_Contrib
   DEPENDS Eigen
-  URL https://github.com/opencv/opencv_contrib/archive/3.4.5.zip
+  URL https://github.com/opencv/opencv_contrib/archive/3.4.1.zip
   SOURCE_DIR OpenCV_Contrib-source
   UPDATE_COMMAND ""
   PATCH_COMMAND ""
@@ -46,6 +46,7 @@ ExternalProject_Add(
     -DWITH_CUDA:BOOL=ON
     -DBUILD_DOCS:BOOL=OFF
     -DWITH_OPENCL_SVM:BOOL=ON
+    -DOPENCV_ENABLE_NONFREE:BOOL=ON
     #-DWITH_QT:BOOL=TRUE # [QT] dependency, enables better GUI
     -DWITH_EIGEN:BOOL=TRUE # [Eigen] dependency, enables better matrix operations 
     -DWITH_OPENMP:BOOL=ON
