@@ -135,8 +135,8 @@ ENDFOREACH()
 SET_PROPERTY( GLOBAL PROPERTY USE_FOLDERS ON )
 
 # for YAML-CPP
-FILE(GLOB_RECURSE YAMLCPP_Headers "${PROJECT_SOURCE_DIR}/src/thirdparty/yaml-cpp/include/yaml-cpp/*.h")
-FILE(GLOB_RECURSE YAMLCPP_Sources "${PROJECT_SOURCE_DIR}/src/thirdparty/yaml-cpp/src/*.cpp")
+FILE(GLOB_RECURSE YAMLCPP_Headers "${PROJECT_SOURCE_DIR}/CaPTk/src/thirdparty/yaml-cpp/include/yaml-cpp/*.h")
+FILE(GLOB_RECURSE YAMLCPP_Sources "${PROJECT_SOURCE_DIR}/CaPTk/src/thirdparty/yaml-cpp/src/*.cpp")
 SET( YAMLCPP_Headers ${YAMLCPP_Headers} CACHE STRING "YAML-CPP headers" FORCE )
 SET( YAMLCPP_Sources ${YAMLCPP_Sources} CACHE STRING "YAML-CPP sources" FORCE )
 SOURCE_GROUP( YAMLCPP_Headers FILES ${YAMLCPP_Headers} )
@@ -155,6 +155,7 @@ FILE( GLOB cbicatk "${PROJECT_SOURCE_DIR}/src/cbica_toolkit/*.*" )
 INCLUDE_DIRECTORIES( 
   ${PROJECT_SOURCE_DIR}/src/depends/ 
   ${PROJECT_SOURCE_DIR}/CaPTk/src/cbica_toolkit/src/
+  ${PROJECT_SOURCE_DIR}/CaPTk/src/thirdparty/yaml-cpp/include/
 )
 
 # Add sources to executable
@@ -168,10 +169,22 @@ ADD_EXECUTABLE(
   #${YAMLCPP_Sources}
 )
 
-ADD_SUBDIRECTORY( CaPTk/src/cbica_toolkit/ )
+#ADD_SUBDIRECTORY( CaPTk/src/cbica_toolkit/ )
 
 SET( LIBNAME_CBICATK "CaPTk_CBICATK" )
 ADD_DEPENDENCIES( ${PROJECT_NAME} ${LIBNAME_CBICATK} )
+
+ADD_LIBRARY( 
+  ${LIBNAME_CBICATK} 
+  ${PROJECT_SOURCE_DIR}/CaPTk/src/cbica_toolkit/src/cbicaStatistics.h
+  ${PROJECT_SOURCE_DIR}/CaPTk/src/cbica_toolkit/src/cbicaUtilities.h
+  ${PROJECT_SOURCE_DIR}/CaPTk/src/cbica_toolkit/src/cbicaUtilities.cpp
+  ${PROJECT_SOURCE_DIR}/CaPTk/src/cbica_toolkit/src/cbicaCmdParser.h
+  ${PROJECT_SOURCE_DIR}/CaPTk/src/cbica_toolkit/src/cbicaCmdParser.cpp
+  ${YAMLCPP_Headers}
+  ${YAMLCPP_Sources}
+)
+  
 
 # Link the libraries to be used
 TARGET_LINK_LIBRARIES(

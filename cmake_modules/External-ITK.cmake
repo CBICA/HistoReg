@@ -37,9 +37,9 @@ ExternalProject_Add(
     -DITK_BUILD_ALL_MODULES:BOOL=ON
     -DITK_DYNAMIC_LOADING:BOOL=OFF
     -DModule_ITKReview:BOOL=ON
-    -DModule_LesionSizingToolkit:BOOL=ON
-    -DModule_SkullStrip:BOOL=ON
-    -DModule_TextureFeatures:BOOL=ON
+    #-DModule_LesionSizingToolkit:BOOL=ON
+    #-DModule_SkullStrip:BOOL=ON
+    #-DModule_TextureFeatures:BOOL=ON
     -DModule_RLEImage:BOOL=ON
     -DModule_IsotropicWavelets:BOOL=ON
     -DModule_PrincipalComponentsAnalysis:BOOL=ON
