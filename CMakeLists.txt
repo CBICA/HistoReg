@@ -39,6 +39,13 @@ SET (PROJECT_VERSION_MINOR 0 )
 SET (PROJECT_VERSION_PATCH 0 )
 #SET (SVN_REVISION "${SVN_REVISION}")
 
+OPTION( HISTOREG_SUPERBUILD_FORCE "Do you want to force Superbuild of the HistoReg dependencies or Specify ITK install directory with the defined components" OFF )
+IF( HISTOREG_SUPERBUILD_FORCE )
+  PROJECT(${PROJECT_NAME}_Depends)
+  INCLUDE( ${PROJECT_SOURCE_DIR}/cmake_modules/Superbuild.cmake )
+  return()
+ENDIF()
+
 FIND_PACKAGE(OpenCV)
 IF(NOT EXISTS ${OpenCV_DIR})
 
