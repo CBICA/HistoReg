@@ -6,15 +6,15 @@
 
 int main(int argc, char **argv)
 {
-  if (argc != 7)
+  if (argc != 4)
   {
-    std::cerr << "HistoReg Usage:\n  HistoReg.exe -s C:/path/to/sourceImage.jpg -t C:/path/to/targetImage.jpg -o C:/path/to/outputDir \n";
+    std::cerr << "HistoReg Usage:\n  HistoReg.exe C:/path/to/sourceImage.jpg C:/path/to/targetImage.jpg C:/path/to/outputDir \n";
     return EXIT_FAILURE;
   }
 
-  const std::string sourceImageFile = argv[2];
-  const std::string targetImageFile = argv[4];
-  const std::string outputDir = argv[6];
+  const std::string sourceImageFile = argv[1];
+  const std::string targetImageFile = argv[2];
+  const std::string outputDir = argv[3];
 
   if (!cbica::isDir(outputDir))
   {
@@ -24,6 +24,7 @@ int main(int argc, char **argv)
   auto sourceImage = cv::imread(sourceImageFile);
   auto targetImage = cv::imread(targetImageFile);
 
+  /// https://docs.opencv.org/3.4.3/d5/d51/group__features2d__main.html
   auto f2d = cv::xfeatures2d::SIFT::create();
   //auto f2d = cv::xfeatures2d::SURF::create();
   //auto f2d = cv::ORB::create();
@@ -41,22 +42,33 @@ int main(int argc, char **argv)
 
   // Matching descriptor vectors
   std::vector< cv::DMatch > matches;
-  
+
+  /// https://docs.opencv.org/3.4.3/d8/d9b/group__features2d__match.html
   cv::BFMatcher matcher;
   //cv::FlannBasedMatcher matcher;
   matcher.match(descriptors_1, descriptors_2, matches);
 
   //-- Quick calculation of max and min distances between keypoints
-  double max_dist = 0; double min_dist = 100;
-  for (int i = 0; i < descriptors_1.rows; i++)
-  {
-    double dist = matches[i].distance;
-    if (dist < min_dist) 
-      min_dist = dist;
-    if (dist > max_dist) 
-      max_dist = dist;
-  }
+  //double max_dist = 0; double min_dist = 100;
+  //for (int i = 0; i < descriptors_1.rows; i++)
+  //{
+  //  double dist = matches[i].distance;
+  //  if (dist < min_dist) 
+  //    min_dist = dist;
+  //  if (dist > max_dist) 
+  //    max_dist = dist;
+  //}
 
+  /// https://docs.opencv.org/3.4.3/d9/d0c/group__calib3d.html#ga4abc2ece9fab9398f2e560d53c8c9780
+  auto h = cv::findHomography(keypoints_1, keypoints_2, cv::RANSAC); // change method of homography to 0, LMEDS or RHO (documentation in above link)
+  cv::imwrite(outputDir + "/homography.jpg", h);
+
+  auto sourceImage_reg = sourceImage;
+
+  /// https://docs.opencv.org/3.4.3/da/d54/group__imgproc__transform.html#gaf73673a7e8e18ec6963e3774e6a94b87
+  cv::warpPerspective(sourceImage, sourceImage_reg, h, targetImage.size());
+
+  cv::imwrite(outputDir + "/sourceImage_reg.jpg", sourceImage_reg);
   //if (argc != 5)
   //{
   //  std::cerr << "HistoReg Usage:\n  HistoReg.exe -d C:/path/to/dataDir -o C:/path/to/outputDir \n";
