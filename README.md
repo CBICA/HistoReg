@@ -4,7 +4,7 @@ This repository describes a framework for automated registration of variably-sta
 The dataset provided for the quantitative evaluation of the proposed approach was provided by the Automatic Non-rigid Histological Image Registration (ANHIR) challenge [1-6]. This challenge was a part of the IEEE International Symposium on Biomedical Imaging (ISBI) 2019 conference.
 
 # References
-[1]J. Borovec, A. Munoz-Barrutia, J. Kybic, "Benchmarking of Image Registration Methods for Differently Stained Histological Slides," 25th IEEE International Conference on Image Processing (ICIP), 2018. DOI: 10.1109/icip.2018.8451040
+[1] J. Borovec, A. Munoz-Barrutia, J. Kybic, "Benchmarking of Image Registration Methods for Differently Stained Histological Slides," 25th IEEE International Conference on Image Processing (ICIP), 2018. DOI: 10.1109/icip.2018.8451040
 
 [2] R. Fernandez-Gonzalez, A. Jones, E. Garcia-Rodriguez, P.Y. Chen, A. Idica, S.J. Lockett, et al., "System for combined three-dimensional morphological and molecular analysis of thick tissue specimens," Microsc Res Tech. 59:522–530, 2002.
 
