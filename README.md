@@ -1,5 +1,5 @@
 # HistoReg
-This repository describes a framework for automated registration of variably-stained digitized histology slices from various anatomical sites, based on a greedy diffeomorphic registration tool.
+This repository describes a framework for automated registration of variably-stained digitized histology slices from various anatomical sites, based on a [greedy diffeomorphic registration tool](https://sites.google.com/view/greedyreg/about).
 
 The dataset provided for the quantitative evaluation of the proposed approach was provided by the Automatic Non-rigid Histological Image Registration (ANHIR) challenge [2-6]. This challenge was a part of the IEEE International Symposium on Biomedical Imaging (ISBI) 2019 conference.
 
