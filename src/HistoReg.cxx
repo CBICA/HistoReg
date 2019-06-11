@@ -34,8 +34,25 @@ int main(int argc, char **argv)
     cbica::createDir(outputDir);
   }
   
-  auto sourceImage = cv::imread(sourceImageFile);
+  auto sourceImage = cv::imread(sourceImageFile, cv::IMREAD_COLOR);
   auto targetImage = cv::imread(targetImageFile);
+
+  int i = 321, j = 614;
+  //auto p = sourceImage.ptr(i);
+  //std::cout << "Channel_0: " << p[0] << "\n";
+  //std::cout << "Channel_1: " << p[1] << "\n";
+  //std::cout << "Channel_2: " << p[2] << "\n";
+
+  auto temp2 = sourceImage.at< cv::Vec3b >(i, j);
+  std::cout << "temp2: " << temp2 << "\n";
+
+  auto input = (unsigned char*)(sourceImage.data);
+  std::cout << "Channel_0: " << input[sourceImage.step * j + i] << "\n";
+  std::cout << "Channel_1: " << input[sourceImage.step * j + i + 1] << "\n";
+  std::cout << "Channel_2: " << input[sourceImage.step * j + i + 2] << "\n";
+  auto b = input[sourceImage.step * j + i];
+  auto g = input[sourceImage.step * j + i + 1];
+  auto r = input[sourceImage.step * j + i + 2];
 
   /// https://docs.opencv.org/3.4.3/d5/d51/group__features2d__main.html
   auto f2d = cv::xfeatures2d::SIFT::create();

@@ -201,6 +201,13 @@ TARGET_LINK_LIBRARIES(
   ${OpenCV_LIBRARIES}
 )
 
+ADD_EXECUTABLE( image2csv ${PROJECT_SOURCE_DIR}/src/image2csv.cxx )
+TARGET_LINK_LIBRARIES( image2csv ${LIBNAME_CBICATK} ${OpenCV_LIBRARIES} )
+INSTALL( TARGETS image2csv DESTINATION bin PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE )
+ADD_EXECUTABLE( csv2image ${PROJECT_SOURCE_DIR}/src/csv2image.cxx )
+TARGET_LINK_LIBRARIES( csv2image ${LIBNAME_CBICATK} ${OpenCV_LIBRARIES} )
+INSTALL( TARGETS image2csv DESTINATION bin PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE )
+
 #--------------------------------------------------------------------------------
 # Source file specification
 #--------------------------------------------------------------------------------
