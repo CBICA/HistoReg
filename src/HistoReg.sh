@@ -91,13 +91,13 @@ function img_dim()
 	image=${1?};
 	which_dim=${2?};
 
-	dim=`$c2d $image -info-full \
+	dim=`$c2d_executable $image -info-full \
 	| grep Dim \
 	| sed -e "s/\[//" -e "s/\]//" -e "s/,//" -e "s/.*: //" \
 	| cut -d ' ' -f${which_dim}`;
 
 	echo $dim;
-};
+}
 
 echoV()
 {
@@ -268,11 +268,10 @@ PATH_Output=$PATH_Output/$name_moving"_registered_to_"$name_fixed;
 
 # Extract size of images 
 ### !!! NEED TO BE REPLACE BY C2D !!! ###
-Size_H_source_big=`identify $moving | cut -d ' ' -f3 | cut -d 'x' -f2`
-Size_W_source_big=`identify $moving | cut -d ' ' -f3 | cut -d 'x' -f1`
-
-Size_H_big=`identify $fixed | cut -d ' ' -f3 | cut -d 'x' -f2`
-Size_W_big=`identify $fixed | cut -d ' ' -f3 | cut -d 'x' -f1`
+Size_H_big=`img_dim $fixed 2`
+Size_W_big=`img_dim $fixed 1`
+Size_H_source_big=`img_dim $moving 2`
+Size_W_source_big=`img_dim $moving 1`
 
 
 # I/ Preproscessing
@@ -297,9 +296,8 @@ echoV "Preprocessing II : Pad images"
 echoV "Target"
 
 # Get new size of images after resample
-#!!!!! FOR NOW SCRIPT CALLS img_dim.sh !!! NEED TO BE CHANGED !!!!
-Size_W_init=`/cbica/comp_space/venetl/HistoRegGreedy/src/img_dim.sh $TEMP_Output/new_small_target.nii.gz 1`;
-Size_H_init=`/cbica/comp_space/venetl/HistoRegGreedy/src/img_dim.sh $TEMP_Output/new_small_target.nii.gz 2`;
+Size_W_init=`img_dim $TEMP_Output/new_small_target.nii.gz 1`
+Size_H_init=`img_dim $TEMP_Output/new_small_target.nii.gz 2`
 
 # Computes size kernel (depends of the size of the images and the Kernel_Divider parameters)
 kernel_W=`bc <<< $Size_W_init/$Kernel_Divider`
@@ -334,9 +332,8 @@ echoV "*****"
 echoV "Same with source"
 # Same idea with source
 # Get new size of images after resample
-#!!!!! FOR NOW SCRIPT CALLS img_dim.sh !!! NEED TO BE CHANGED !!!!
-Size_W_source_init=`/cbica/comp_space/venetl/HistoRegGreedy/src/img_dim.sh $TEMP_Output/new_small_source.nii.gz 1`;
-Size_H_source_init=`/cbica/comp_space/venetl/HistoRegGreedy/src/img_dim.sh $TEMP_Output/new_small_source.nii.gz 2`;
+Size_W_source_init=`img_dim $TEMP_Output/new_small_source.nii.gz 1`
+Size_H_source_init=`img_dim $TEMP_Output/new_small_source.nii.gz 2`
 
 # Computes size kernel
 kernel_H_source=`bc <<< $Size_H_source_init/$Kernel_Divider`
@@ -505,11 +502,11 @@ $c2d_executable $TEMP_Output/mask_source.nii.gz $TEMP_Output/new_small_source_pa
 echoV "End preprocessing."
 
 # Get new size of source and target images after padding
-Size_W=`fslinfo $TEMP_Output/new_small_target_padded.nii.gz | grep '^dim1' | cut -d ' ' -f12`
-Size_H=`fslinfo $TEMP_Output/new_small_target_padded.nii.gz | grep '^dim2' | cut -d ' ' -f12`
+Size_W=`img_dim $TEMP_Output/new_small_target_padded.nii.gz 1`
+Size_H=`img_dim $TEMP_Output/new_small_target_padded.nii.gz 2`
 
-Size_W_source=`fslinfo $TEMP_Output/new_small_source_padded.nii.gz | grep '^dim1' | cut -d ' ' -f12`
-Size_H_source=`fslinfo $TEMP_Output/new_small_source_padded.nii.gz | grep '^dim2' | cut -d ' ' -f12`
+Size_W_source=`img_dim $TEMP_Output/new_small_source_padded.nii.gz 1`
+Size_H_source=`img_dim $TEMP_Output/new_small_source_padded.nii.gz 2`
 
 echoV "Size small target : "$Size_W"x"$Size_H
 echoV "Size small source : "$Size_W_source"x"$Size_H_source
