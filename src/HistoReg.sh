@@ -63,6 +63,7 @@
 
 version="06.18.2019";
 set -e;
+start_full_script=`date +%s`
 TEMP_Output=${SBIA_TMPDIR}"/"$JOB_NAME_$JOB_ID;
 
 # Initial parameters
@@ -265,6 +266,7 @@ echoV "Creating output and temporary directories"
 mkdir -p $PATH_Output/$name_moving"_registered_to_"$name_fixed;
 mkdir -p $TEMP_Output;
 PATH_Output=$PATH_Output/$name_moving"_registered_to_"$name_fixed;
+mkdir -p $PATH_Output/metrics
 
 # Extract size of images 
 ### !!! NEED TO BE REPLACE BY C2D !!! ###
@@ -275,6 +277,7 @@ Size_W_source_big=`img_dim $moving 1`
 
 
 # I/ Preproscessing
+start=`date +%s`
 echo "------------------------------------------------------------------------------------------"
 echo "Preprocessing..."
 echoV "Preprocessing I : Resample images"
@@ -500,6 +503,10 @@ $c2d_executable $TEMP_Output/mask_source.nii.gz $TEMP_Output/new_small_source_pa
 -o $TEMP_Output/new_small_source_padded.nii.gz
 
 echoV "End preprocessing."
+end=`date +%s`
+runtime=$(($end-$start))
+echo "Preprocessing took :" $runtime" secondes"
+
 
 # Get new size of source and target images after padding
 Size_W=`img_dim $TEMP_Output/new_small_target_padded.nii.gz 1`
@@ -579,10 +586,108 @@ echo "Computation of the affine matrix took :" $runtime_aff" secondes"
 echo "Computation of the deformable field took :" $runtime_deff" secondes"
 echo "Computation of the both deformable and affine registration took :" $runtime" secondes"
 
+echo "------------------------------------------------------------------------------------------"
+echo "Adaptating small metrics to full resolution images..."
+start=`date +%s`
+# Adapt small_affine and small_warp to full resolution images
+# Adapt affine matrix to full resolution, multiply translation vector of the matrix by the scale we resampled the image. For example with 4%, size of the image is divided by 25 so we multiply the translation part of the matrix by 25. 
+# Rotation scaling and shearing stay the same.
+# !!! Complicated code for a simple task, can probably be simplified.
+echoV "Modifying affine matrix..."
+tr ' ' ',' <$TEMP_Output/small_Affine.mat> $TEMP_Output/temp.mat
+
+lines=`cat $TEMP_Output/temp.mat`
+rm -f $TEMP_Output/Affine.mat
+
+i=0
+
+for line in $lines
+do
+	if [[ $i -lt 2 ]];then
+		line_to_keep=`echo $line | cut -d , -f1-2`
+		translation_to_change=`echo $line | cut -d , -f3`
+		#new_translation=`echo $(( $translation_to_change * 25 ))`
+		factor=`bc <<< 100/$resample`
+		new_translation=`bc <<< $translation_to_change*$factor`
+		new_line=$line_to_keep","$new_translation
+	fi
+	if [[ $i -eq 2 ]];then
+		new_line=$line
+	fi
+	echo $new_line >> $TEMP_Output/temp_Affine.mat
+	
+	i=`bc <<< $i+1`
+done
+
+tr ',' ' ' <$TEMP_Output/temp_Affine.mat> $TEMP_Output/Affine.mat
+
+
+echoV "Modifying warp..."
+
+# We want to apply transformation to the original images that are NOT PADDED.
+# Get size difference between small padded images and small images before padding.
+Diff_W_Target=`bc <<< $Size_W-$Size_W_init`
+Diff_H_Target=`bc <<< $Size_H-$Size_H_init`
+
+# Create a 1 intensity image of the size of the full resolution target without padding
+echoV "Creating new image of the size of the original target..."
+echoV "	$c2d_executable -background 1 -create $Size_W_init"x"$Size_H_init 1x1mm -orient LP -o $TEMP_Output/mask_no_pad.nii.gz"
+$c2d_executable -background 1 \
+-create $Size_W_init"x"$Size_H_init 1x1mm \
+-orient LP \
+-o $TEMP_Output/mask_no_pad.nii.gz
+
+# Pad this image with 0 to the size of the full resolution target after padding. We have now a mask with intensity 1 for pixel that belongs to the original target image and intensity 0 for pixels that belogns to the padded part of the image.
+echoV "Padding this new image to full resolution with padding..."
+echoV "$c2d_executable $TEMP_Output/mask_no_pad.nii.gz -pad-to $Size_W"x"$Size_H 0 -o $TEMP_Output/mask_padded.nii.gz"
+$c2d_executable $TEMP_Output/mask_no_pad.nii.gz \
+-pad-to $Size_W"x"$Size_H 0 \
+-o $TEMP_Output/mask_padded.nii.gz
+
+# Change origin of the mask so it matches the one of the full resolution warp image. 
+echoV "Modifying origin..."
+echoV "	$c2d_executable $TEMP_Output/mask_padded.nii.gz -origin 0x0mm -o $TEMP_Output/mask_padded.nii.gz"
+$c2d_executable $TEMP_Output/mask_padded.nii.gz \
+-origin 0x0mm \
+-o $TEMP_Output/mask_padded.nii.gz
+
+echoV "Modifying origin..."
+echoV "$c2d_executable $TEMP_Output/small_warp.nii.gz \
+-origin 0x0mm \
+-o $TEMP_Output/small_warp.nii.gz"
+$c2d_executable -mcs $TEMP_Output/small_warp.nii.gz \
+-origin 0x0mm \
+-omc $TEMP_Output/small_warp.nii.gz
+
+# Multiply the mask and the full resolution warp image to force to 0 every value in the padded part of the warp image.
+echoV "Multiplying both images together..."
+echoV "$c2d_executable $TEMP_Output/mask_padded.nii.gz -popas mask -mcs $TEMP_Output/small_warp.nii.gz -foreach -push mask -times -endfor -omc $TEMP_Output/small_warp_no_pad.nii.gz"
+$c2d_executable $TEMP_Output/mask_padded.nii.gz -popas mask \
+-mcs $TEMP_Output/small_warp.nii.gz \
+-foreach \
+-push mask -times \
+-endfor \
+-omc $TEMP_Output/small_warp_no_pad.nii.gz
+
+# trim the warp image to remove every pixels with intensity 0 that are on the border of the image, ie every pixels that belongs to the padded part of the warp image.
+echoV "Trim the result image to remove padded part..."
+echoV "$c2d_executable -mcs $TEMP_Output/small_warp_no_pad.nii.gz -foreach -trim 0vox -endfor -omc $TEMP_Output/small_warp_no_pad_trim.nii.gz"
+$c2d_executable -mcs $TEMP_Output/small_warp_no_pad.nii.gz \
+-foreach \
+-trim 0vox \
+-endfor \
+-omc $TEMP_Output/small_warp_no_pad_trim.nii.gz
+
+end=`date +%s`
+runtime=$(($end-$start))
+
+echo "Adaptation of small warp and small affine matrix to full resolution images took :" $runtime_aff" secondes"
+
 # Apply transformation on landmarks if they're provided
 if [ $landmarks_provided -eq 1 ];then
 	echo "------------------------------------------------------------------------------------------"
 	echo "Applying trasnformations on the landmarks"
+	start=`date +%s`
 
 	# PATH to landmarks csv and to temporary csv needed for computation
 	LM_MOVING_FULL=$PATH_to_landmarks
@@ -622,22 +727,27 @@ if [ $landmarks_provided -eq 1 ];then
 	  | awk -F, -v wbig=$Size_W_big -v hbig=$Size_H_big \
 	    -v wsmall=$Size_W_init -v hsmall=$Size_H_init \
 	    'BEGIN {printf(",X,Y\n")} {printf("%d,%f,%f\n",NR-1,(($1+0.5)*wbig)/wsmall,(($2+0.5)*hbig)/hsmall)}' > $LM_WARPED_FULL
+	
+	end=`date +%s`
+	runtime=$(($end-$start))
+	echo "Apply transformation to landmarks took :" $runtime" secondes"
 fi
 
 if [ $apply_small_res -eq 1 ];then
 	# Create sshot
 	echo "------------------------------------------------------------------------------------------"
 	echo "Applying on small grayscale images..."
+	start=`date +%s`
 	#!!!! APPLYING ON GRAYSCALE IMAGES !!!
 
 	# Reslice small source padded
 	echoV "$greedy_executable -d 2 \
-	-rf $TEMP_Output/new_small_target_padded.nii.gz \
-	-rm $TEMP_Output/new_small_source_padded.nii.gz $TEMP_Output/small_registeredImage.nii.gz \
+	-rf $TEMP_Output/new_small_target.nii.gz \
+	-rm $TEMP_Output/new_small_source.nii.gz $TEMP_Output/small_registeredImage.nii.gz \
 	-r $TEMP_Output/small_warp.nii.gz $TEMP_Output/small_Affine.mat"
 	$greedy_executable -d 2 \
-	-rf $TEMP_Output/new_small_target_padded.nii.gz \
-	-rm $TEMP_Output/new_small_source_padded.nii.gz $TEMP_Output/small_registeredImage.nii.gz \
+	-rf $TEMP_Output/new_small_target.nii.gz \
+	-rm $TEMP_Output/new_small_source.nii.gz $TEMP_Output/small_registeredImage.nii.gz \
 	-r $TEMP_Output/small_warp.nii.gz $TEMP_Output/small_Affine.mat
 
 	# Create directory to store result
@@ -648,19 +758,19 @@ if [ $apply_small_res -eq 1 ];then
 	echoV "*****"
 	echoV "Convert NIFTI to PNG"
 	echoV "Target"
-	echoV "$c2d_executable $TEMP_Output/new_small_target_padded.nii.gz \
+	echoV "$c2d_executable $TEMP_Output/new_small_target.nii.gz \
 	-stretch 0 99% 0 255 -type uchar \
 	-o $TEMP_Output/sshot/new_small_target.png"
-	$c2d_executable $TEMP_Output/new_small_target_padded.nii.gz \
+	$c2d_executable $TEMP_Output/new_small_target.nii.gz \
 	-stretch 0 99% 0 255 -type uchar \
 	-o $TEMP_Output/sshot/new_small_target.png
 
 
 	echoV "Source"
-	echoV "$c2d_executable $TEMP_Output/new_small_source_padded.nii.gz \
+	echoV "$c2d_executable $TEMP_Output/new_small_source.nii.gz \
 	-stretch 0 99% 0 255 -type uchar \
 	-o $TEMP_Output/sshot/new_small_source.png"
-	$c2d_executable $TEMP_Output/new_small_source_padded.nii.gz \
+	$c2d_executable $TEMP_Output/new_small_source.nii.gz \
 	-stretch 0 99% 0 255 -type uchar \
 	-o $TEMP_Output/sshot/new_small_source.png
 
@@ -676,6 +786,10 @@ if [ $apply_small_res -eq 1 ];then
 	echoV "Fuse 3 images into 1 for visualization"
 	echoV "montage -geometry +0+0 -tile 3x $TEMP_Output/sshot/*.png $PATH_Output/sshot/$name_moving"_to_"$name_fixed.png"
 	montage -geometry +0+0 -tile 3x $TEMP_Output/sshot/*.png $PATH_Output/sshot/$name_moving"_to_"$name_fixed.png
+
+	end=`date +%s`
+	runtime=$(($end-$start))
+	echo "Apply transformation to small grayscale images took :" $runtime" secondes"
 fi
 
 # If asked by user, apply transformation to full size images.
@@ -686,115 +800,35 @@ if [[ $apply_full_res -eq 1 ]];then
 	# Start new timer
 	start=`date +%s`
 
-	# Adapt affine matrix to full resolution, multiply translation vector of the matrix by the scale we resampled the image. For example with 4%, size of the image is divided by 25 so we multiply the translation part of the matrix by 25. 
-	# Rotation scaling and shearing stay the same.
-	# !!! Complicated code for a simple task, can probably be simplified.
-	echoV "Modifying affine matrix"
-	tr ' ' ',' <$TEMP_Output/small_Affine.mat> $TEMP_Output/temp.mat
-
-	lines=`cat $TEMP_Output/temp.mat`
-	rm -f $TEMP_Output/Affine.mat
-
-	i=0
-
-	for line in $lines
-	do
-		if [[ $i -lt 2 ]];then
-			line_to_keep=`echo $line | cut -d , -f1-2`
-			translation_to_change=`echo $line | cut -d , -f3`
-			#new_translation=`echo $(( $translation_to_change * 25 ))`
-			factor=`bc <<< 100/$resample`
-			new_translation=`bc <<< $translation_to_change*$factor`
-			new_line=$line_to_keep","$new_translation
-		fi
-		if [[ $i -eq 2 ]];then
-			new_line=$line
-		fi
-		echo $new_line >> $TEMP_Output/temp_Affine.mat
-		
-		i=`bc <<< $i+1`
-	done
-
-	tr ',' ' ' <$TEMP_Output/temp_Affine.mat> $TEMP_Output/Affine.mat
-
-
-	# We want to apply transformation to the original images that are NOT PADDED.
-	# Get size difference between small padded images and small images before padding.
-	Diff_W_Target=`bc <<< $Size_W-$Size_W_init`
-	Diff_H_Target=`bc <<< $Size_H-$Size_H_init`
-
-	# Multiply these differences by the scale we resampled the images. Gives us the size of the padded part in full resolution.
-	Pad_full_res_W=`bc <<< $Diff_W_Target*100/$resample`
-	Pad_full_res_H=`bc <<< $Diff_H_Target*100/$resample`
-
-	# Add it to the original size of the target image, give the size of the full resolution images after padding.
-	new_dim_W=`bc <<< $Size_W_big+$Pad_full_res_W`
-	new_dim_H=`bc <<< $Size_H_big+$Pad_full_res_H`
 	echoV "*****"
 
 	echoV "Modifying small warp..."
 	echoV "Full resolution size : "$Size_W_big"x"$Size_H_big
-	echoV "Full resolution size of the padding : "$Pad_full_res_W"x"$Pad_full_res_H
-	echoV "Full resolution size after padding : "$new_dim_W"x"$new_dim_H
 	# Resample small warp image to this resolution and scale it with the scale we resampled the image to. (the warp image is a matrix that contains a translation vector for each pixel of the target image, we need to scale this translation to the new resolution as we did for the affine matrix)
 	echoV "Resampling small warp to full resolution with padding..."
-	echoV "	$c2d_executable -mcs $TEMP_Output/small_warp.nii.gz -foreach -resample $new_dim_W"x"$new_dim_H -scale $factor -spacing 1x1mm -origin 0x0mm -endfor -omc $TEMP_Output/big_warp.nii.gz"
-	$c2d_executable -mcs $TEMP_Output/small_warp.nii.gz \
+	echoV "$c2d_executable -mcs $TEMP_Output/small_warp_no_pad_trim.nii.gz \
 	-foreach \
-	-resample $new_dim_W"x"$new_dim_H \
+	-resample $Size_W_big"x"$Size_H_big \
+	-scale $factor \
+	-spacing 1x1mm -origin 0x0mm \
+	-endfor \
+	-omc $TEMP_Output/big_warp.nii.gz"
+	$c2d_executable -mcs $TEMP_Output/small_warp_no_pad_trim.nii.gz \
+	-foreach \
+	-resample $Size_W_big"x"$Size_H_big \
 	-scale $factor \
 	-spacing 1x1mm -origin 0x0mm \
 	-endfor \
 	-omc $TEMP_Output/big_warp.nii.gz
 
-	# Create a 1 intensity image of the size of the full resolution target without padding
-	echoV "Creating new image of the size of the original target..."
-	echoV "	$c2d_executable -background 1 -create $Size_W_big"x"$Size_H_big 1x1mm -orient LP -o $TEMP_Output/mask_full_res.nii.gz"
-	$c2d_executable -background 1 \
-	-create $Size_W_big"x"$Size_H_big 1x1mm \
-	-orient LP \
-	-o $TEMP_Output/mask_full_res.nii.gz
-
-
-	# Pad this image with 0 to the size of the full resolution target after padding. We have now a mask with intensity 1 for pixel that belongs to the original target image and intensity 0 for pixels that belogns to the padded part of the image.
-	echoV "Padding this new image to full resolution with padding..."
-	echoV "$c2d_executable $TEMP_Output/mask_full_res.nii.gz -pad-to $new_dim_W"x"$new_dim_H 0 -o $TEMP_Output/mask_full_res_padded.nii.gz"
-	$c2d_executable $TEMP_Output/mask_full_res.nii.gz \
-	-pad-to $new_dim_W"x"$new_dim_H 0 \
-	-o $TEMP_Output/mask_full_res_padded.nii.gz
-
-	# Change origin of the mask so it matches the one of the full resolution warp image. 
-	echoV "Modifying origin..."
-	echoV "	$c2d_executable $TEMP_Output/mask_full_res_padded.nii.gz -origin 0x0mm -o $TEMP_Output/mask_full_res_padded.nii.gz"
-	$c2d_executable $TEMP_Output/mask_full_res_padded.nii.gz \
-	-origin 0x0mm \
-	-o $TEMP_Output/mask_full_res_padded.nii.gz
-
-	# Multiply the mask and the full resolution warp image to force to 0 every value in the padded part of the warp image.
-	echoV "Multiplying both images together..."
-	echoV "$c2d_executable $TEMP_Output/mask_full_res_padded.nii.gz -popas mask -mcs $TEMP_Output/big_warp.nii.gz -foreach -push mask -times -endfor -omc $TEMP_Output/big_warp_no_pad.nii.gz"
-	$c2d_executable $TEMP_Output/mask_full_res_padded.nii.gz -popas mask \
-	-mcs $TEMP_Output/big_warp.nii.gz \
-	-foreach \
-	-push mask -times \
-	-endfor \
-	-omc $TEMP_Output/big_warp_no_pad.nii.gz
-
-	# trim the warp image to remove every pixels with intensity 0 that are on the border of the image, ie every pixels that belongs to the padded part of the warp image.
-	echoV "Trim the result image to remove padded part..."
-	echoV "$c2d_executable -mcs $TEMP_Output/big_warp_no_pad.nii.gz -foreach -trim 0vox -endfor -omc $TEMP_Output/big_warp_no_pad_trim.nii.gz"
-	$c2d_executable -mcs $TEMP_Output/big_warp_no_pad.nii.gz \
-	-foreach \
-	-trim 0vox \
-	-endfor \
-	-omc $TEMP_Output/big_warp_no_pad_trim.nii.gz
-
-	# We now have a warp image at full resolution that can be applied to a non-padded full resolution image. 
-
 	echoV "Converting source and target to nifti files with good orientation, pixel spacing and origin..."
 	echoV "Target"
 	# Convert source and target images to NIFTI files after fixing their orientation, pixel spacing and origin.
-	echoV "$c2d_executable -mcs $fixed -foreach -orient LP -spacing 1x1mm -origin 0x0mm -endfor -omc $TEMP_Output/new_target.nii.gz"
+	echoV "$c2d_executable -mcs $fixed \
+	-foreach \
+	-orient LP -spacing 1x1mm -origin 0x0mm \
+	-endfor \
+	-omc $TEMP_Output/new_target.nii.gz"
 	$c2d_executable -mcs $fixed \
 	-foreach \
 	-orient LP -spacing 1x1mm -origin 0x0mm \
@@ -802,7 +836,10 @@ if [[ $apply_full_res -eq 1 ]];then
 	-omc $TEMP_Output/new_target.nii.gz
 
 	echoV "Source"
-	echoV "$c2d_executable -mcs $moving -foreach -orient LP -spacing 1x1mm -origin 0x0mm -endfor -omc $TEMP_Output/new_source.nii.gz"
+	echoV "$c2d_executable -mcs $moving \
+	-foreach -orient LP -spacing 1x1mm -origin 0x0mm \
+	-endfor \
+	-omc $TEMP_Output/new_source.nii.gz"
 	$c2d_executable -mcs $moving \
 	-foreach -orient LP -spacing 1x1mm -origin 0x0mm \
 	-endfor \
@@ -811,20 +848,27 @@ if [[ $apply_full_res -eq 1 ]];then
 
 	# Change full resolution warp image origin so it matches the one of the source and target images.
 	echoV "Modifying origin of mask..."
-	echoV "$c2d_executable -mcs $TEMP_Output/big_warp_no_pad_trim.nii.gz -foreach -origin 0x0mm -endfor -omc $TEMP_Output/big_warp_no_pad_trim.nii.gz"
-	$c2d_executable -mcs $TEMP_Output/big_warp_no_pad_trim.nii.gz \
+	echoV "$c2d_executable -mcs $TEMP_Output/big_warp.nii.gz \
 	-foreach \
 	-origin 0x0mm \
 	-endfor \
-	-omc $TEMP_Output/big_warp_no_pad_trim.nii.gz
+	-omc $TEMP_Output/big_warp.nii.gz"
+	$c2d_executable -mcs $TEMP_Output/big_warp.nii.gz \
+	-foreach \
+	-origin 0x0mm \
+	-endfor \
+	-omc $TEMP_Output/big_warp.nii.gz
 
 	# Apply transformation to full resolution images.
 	echoV "Applying transformation to full size images..."
-	echoV "$greedy_executable -d 2 -rf $TEMP_Output/new_target.nii.gz -rm $TEMP_Output/new_source.nii.gz $TEMP_Output/registeredImage.nii.gz -r $TEMP_Output/big_warp_no_pad_trim.nii.gz $TEMP_Output/Affine.mat"
+	echoV "$greedy_executable -d 2 \
+	-rf $TEMP_Output/new_target.nii.gz \
+	-rm $TEMP_Output/new_source.nii.gz $TEMP_Output/registeredImage.nii.gz \
+	-r $TEMP_Output/big_warp.nii.gz $TEMP_Output/Affine.mat"
 	$greedy_executable -d 2 \
 	-rf $TEMP_Output/new_target.nii.gz \
 	-rm $TEMP_Output/new_source.nii.gz $TEMP_Output/registeredImage.nii.gz \
-	-r $TEMP_Output/big_warp_no_pad_trim.nii.gz $TEMP_Output/Affine.mat
+	-r $TEMP_Output/big_warp.nii.gz $TEMP_Output/Affine.mat
 
 	end=`date +%s`
 	runtime=$(($end-$start))
@@ -845,35 +889,47 @@ if [[ $apply_full_res -eq 1 ]];then
 	cp $TEMP_Output/sshot/full_res/new_target.png $PATH_Output/sshot/full_res/new_target.png
 	cp $TEMP_Output/sshot/full_res/new_source.png $PATH_Output/sshot/full_res/new_source.png
 	cp $TEMP_Output/sshot/full_res/registeredImage.png $PATH_Output/sshot/full_res/registeredImage.png
-	
+
 
 	#montage -geometry +0+0 -tile 3x $TEMP_Output/sshot/full_res/*.png $PATH_Output/sshot/full_res/$name_moving"_to_"$name_fixed"_full_res.png"
 fi
 
-mv $TEMP_Output/small_Affine.mat $PATH_Output/small_Affine.mat
-mv $TEMP_Output/small_warp.nii.gz $PATH_Output/small_warp.nii.gz
-mv $TEMP_Output/small_inv_warp.nii.gz $PATH_Output/small_inv_warp.nii.gz
+
+start=`date +%s`
+echo "******************************************************************************"
+echo "Saving metrics..."
+mv $TEMP_Output/small_Affine.mat $PATH_Output/metrics/small_Affine.mat
+mv $TEMP_Output/small_warp.nii.gz $PATH_Output/metrics/small_warp.nii.gz
+mv $TEMP_Output/small_inv_warp.nii.gz $PATH_Output/metrics/small_inv_warp.nii.gz
 
 if [[ $apply_full_res -eq 1 ]];then
-	mv $TEMP_Output/Affine.mat $PATH_Output/Affine.mat
-	mv $TEMP_Output/big_warp_no_pad_trim.nii.gz $PATH_Output/warp.nii.gz
+	mkdir -p $PATH_Output/metrics/full_res
+	mv $TEMP_Output/Affine.mat $PATH_Output/metrics/full_res/Affine.mat
+	mv $TEMP_Output/big_warp.nii.gz $PATH_Output/metrics/full_res/warp.nii.gz
 fi
 
 
 if [[ $SAVE -eq 1 ]];then
-	echo "******************************************************************************"
-	echo "Saving files..."
-	mv $TEMP_Output/new_small_target_padded.nii.gz $PATH_Output/new_small_target_padded.nii.gz
-	mv $TEMP_Output/new_small_source_padded.nii.gz $PATH_Output/new_small_source_padded.nii.gz
-	mv $TEMP_Output/small_registeredImage.nii.gz $PATH_Output/small_registeredImage.nii.gz
+	echo "Saving NIFTIs..."
+	mkdir -p $PATH_Output/Saved_NIFTI
+	mv $TEMP_Output/new_small_target_padded.nii.gz $PATH_Output/Saved_NIFTI/new_small_target_padded.nii.gz
+	mv $TEMP_Output/new_small_source_padded.nii.gz $PATH_Output/Saved_NIFTI/new_small_source_padded.nii.gz
+	mv $TEMP_Output/small_registeredImage.nii.gz $PATH_Output/Saved_NIFTI/small_registeredImage.nii.gz
 	if [[ $apply_full_res -eq 1 ]];then
-		mv $TEMP_Output/new_target.nii.gz $PATH_Output/new_target.nii.gz
-		mv $TEMP_Output/new_source.nii.gz $PATH_Output/new_source.nii.gz
-		mv $TEMP_Output/registeredImage.nii.gz $PATH_Output/registeredImage.nii.gz
+		mkdir -p $PATH_Output/Saved_NIFTI/full_res
+		mv $TEMP_Output/new_target.nii.gz $PATH_Output/Saved_NIFTI/full_res/new_target.nii.gz
+		mv $TEMP_Output/new_source.nii.gz $PATH_Output/Saved_NIFTI/full_res/new_source.nii.gz
+		mv $TEMP_Output/registeredImage.nii.gz $PATH_Output/Saved_NIFTI/full_res/registeredImage.nii.gz
 	fi
 fi
 
+end=`date +%s`
+runtime=$(($end-$start))
+echo "Saving files took :" $runtime" secondes"
+end_full_script=`date +%s`
+runtime_full_script=$(($end_full_script-$start_full_script))
 echo "End."
+echo "Script took : "$runtime_full_script" seconds to run."
 
 
 
