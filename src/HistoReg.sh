@@ -119,13 +119,14 @@ function Help {
   echo -e "  Description:";
 
   echo -e "\n";
-  echo -e "    Description Verbose.";
+  echo -e "  Fast, robust and accurate method for non-rigid 2D registration of very large images (tested with images with size up to 30kx30k pixels). This method takes less than 1 min on the cluster to compute the registration metrics but it can takes several minutes to apply these on the full resolution images (Depending on the size of the images). The method is robust to variable stains in histological images. It was applied in the ANHIR challenge for ISBI 2019 where it ranked 2nd, results can be see here : http://anhir.grand-challenge.org/Workshop-ISBI19/"
+  echo -e "  Script written by Ludovic Venet, last update June 2019.";
 
   echo -e "\n";
   echo -e "  Usage:";
 
   echo -e "\n";
-  echo -e "    ${script_name} -o /outdir/path -m /path/to/moving/image -f -path/to/fixed/image [-OPTIONAL arguments]";
+  echo -e "    qsub -l Intel_Xeon_Gold_6130 ${script_name} -o /outdir/path -m /path/to/moving/image -f /path/to/fixed/image [-OPTIONAL arguments]";
 
   echo -e "\n";
   echo -e "  Compulsory Arguments:";
@@ -879,11 +880,6 @@ if [[ $apply_full_res -eq 1 ]];then
 	$c2d_executable -mcs $TEMP_Output/new_target.nii.gz -foreach -stretch 0 99% 0 255 -type uchar -endfor -omc $TEMP_Output/sshot/full_res/new_target.png
 	$c2d_executable -mcs $TEMP_Output/new_source.nii.gz -foreach -stretch 0 99% 0 255 -type uchar -endfor -omc $TEMP_Output/sshot/full_res/new_source.png
 	$c2d_executable -mcs $TEMP_Output/registeredImage.nii.gz -foreach -stretch 0 99% 0 255 -type uchar -endfor -omc $TEMP_Output/sshot/full_res/registeredImage.png
-
-
-	cp $TEMP_Output/new_target.nii.gz $PATH_Output/new_target.nii.gz 
-	cp $TEMP_Output/new_source.nii.gz $PATH_Output/new_source.nii.gz
-	cp $TEMP_Output/registeredImage.nii.gz $PATH_Output/registeredImage.nii.gz
 	
 	mkdir -p $PATH_Output/sshot/full_res
 	cp $TEMP_Output/sshot/full_res/new_target.png $PATH_Output/sshot/full_res/new_target.png
@@ -911,15 +907,17 @@ fi
 
 if [[ $SAVE -eq 1 ]];then
 	echo "Saving NIFTIs..."
-	mkdir -p $PATH_Output/Saved_NIFTI
-	mv $TEMP_Output/new_small_target_padded.nii.gz $PATH_Output/Saved_NIFTI/new_small_target_padded.nii.gz
-	mv $TEMP_Output/new_small_source_padded.nii.gz $PATH_Output/Saved_NIFTI/new_small_source_padded.nii.gz
-	mv $TEMP_Output/small_registeredImage.nii.gz $PATH_Output/Saved_NIFTI/small_registeredImage.nii.gz
+	mkdir -p $PATH_Output/Saved_NIFTIs
+	mv $TEMP_Output/new_small_target_padded.nii.gz $PATH_Output/Saved_NIFTIs/new_small_target_padded.nii.gz
+	mv $TEMP_Output/new_small_source_padded.nii.gz $PATH_Output/Saved_NIFTIs/new_small_source_padded.nii.gz
+	if [[ $apply_small_res -eq 1 ]];then
+		mv $TEMP_Output/small_registeredImage.nii.gz $PATH_Output/Saved_NIFTIs/small_registeredImage.nii.gz
+	fi
 	if [[ $apply_full_res -eq 1 ]];then
-		mkdir -p $PATH_Output/Saved_NIFTI/full_res
-		mv $TEMP_Output/new_target.nii.gz $PATH_Output/Saved_NIFTI/full_res/new_target.nii.gz
-		mv $TEMP_Output/new_source.nii.gz $PATH_Output/Saved_NIFTI/full_res/new_source.nii.gz
-		mv $TEMP_Output/registeredImage.nii.gz $PATH_Output/Saved_NIFTI/full_res/registeredImage.nii.gz
+		mkdir -p $PATH_Output/Saved_NIFTIs/full_res
+		mv $TEMP_Output/new_target.nii.gz $PATH_Output/Saved_NIFTIs/full_res/new_target.nii.gz
+		mv $TEMP_Output/new_source.nii.gz $PATH_Output/Saved_NIFTIs/full_res/new_source.nii.gz
+		mv $TEMP_Output/registeredImage.nii.gz $PATH_Output/Saved_NIFTIs/full_res/registeredImage.nii.gz
 	fi
 fi
 
