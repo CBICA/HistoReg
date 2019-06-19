@@ -190,7 +190,7 @@ function Help {
   echo -e "\n";
   echo -e "    -S  [switch]${UNDERLINE_YELLOW}S${REGULAR_RED}AVE mode on";
   echo -e "    (default=${SAVE})";
-  echo -e "    !!!!!!! COMPLETE THIS !!!!!!" 
+  echo -e "    By default, only save metrics (Affine matrix and warp image) for resampled images and for full resolution images if -F flag ON. By switching it on, save metrics plus source, target and source registered to target for small images (with padding) and full resolution images (without padding) if -F flag ON."
 
   
 
@@ -200,7 +200,7 @@ function Help {
 
 
 # get user inputs
-while getopts m:f:o:l:g:c:k:s:r:hFVSL option
+while getopts m:f:o:l:g:c:k:s:r:hFVSM option
 do
   case "${option}"
   in
@@ -229,7 +229,7 @@ do
 	echo "SAVE MODE ON";;
     F) apply_full_res=1;
 	echo "Reslice full resolution images ON";;
-    L) apply_small_res=1;
+    M) apply_small_res=1;
 	echo "Reslice small resolution images ON";;
     ?)	echo "Unrecognized Options. Exiting. " 1>&2;
         Help;
@@ -831,25 +831,33 @@ if [[ $apply_full_res -eq 1 ]];then
 	echo "Reslicing the full resolution images took :" $runtime" secondes"
 
 
-	#mkdir -p $TEMP_Output/sshot/full_res
-	#$c2d_executable -mcs $TEMP_Output/new_target.nii.gz -foreach -stretch 0 99% 0 255 -type uchar -endfor -omc $TEMP_Output/sshot/full_res/new_target.png
-	#$c2d_executable -mcs $TEMP_Output/new_source.nii.gz -foreach -stretch 0 99% 0 255 -type uchar -endfor -omc $TEMP_Output/sshot/full_res/new_source.png
-	#$c2d_executable -mcs $TEMP_Output/registeredImage.nii.gz -foreach -stretch 0 99% 0 255 -type uchar -endfor -omc $TEMP_Output/sshot/full_res/registeredImage.png
+	mkdir -p $TEMP_Output/sshot/full_res
+	$c2d_executable -mcs $TEMP_Output/new_target.nii.gz -foreach -stretch 0 99% 0 255 -type uchar -endfor -omc $TEMP_Output/sshot/full_res/new_target.png
+	$c2d_executable -mcs $TEMP_Output/new_source.nii.gz -foreach -stretch 0 99% 0 255 -type uchar -endfor -omc $TEMP_Output/sshot/full_res/new_source.png
+	$c2d_executable -mcs $TEMP_Output/registeredImage.nii.gz -foreach -stretch 0 99% 0 255 -type uchar -endfor -omc $TEMP_Output/sshot/full_res/registeredImage.png
 
 
-	#cp $TEMP_Output/new_target.nii.gz $PATH_Output/new_target.nii.gz 
-	#cp $TEMP_Output/new_source.nii.gz $PATH_Output/new_source.nii.gz
-	#cp $TEMP_Output/registeredImage.nii.gz $PATH_Output/registeredImage.nii.gz
+	cp $TEMP_Output/new_target.nii.gz $PATH_Output/new_target.nii.gz 
+	cp $TEMP_Output/new_source.nii.gz $PATH_Output/new_source.nii.gz
+	cp $TEMP_Output/registeredImage.nii.gz $PATH_Output/registeredImage.nii.gz
 	
-	#cp $TEMP_Output/sshot/full_res/new_target.png $PATH_Output/new_target.png
-	#cp $TEMP_Output/sshot/full_res/new_source.png $PATH_Output/new_source.png
-	#cp $TEMP_Output/sshot/full_res/registeredImage.png $PATH_Output/registeredImage.png
-
-	#mkdir -p $PATH_Output/sshot/full_res
+	mkdir -p $PATH_Output/sshot/full_res
+	cp $TEMP_Output/sshot/full_res/new_target.png $PATH_Output/sshot/full_res/new_target.png
+	cp $TEMP_Output/sshot/full_res/new_source.png $PATH_Output/sshot/full_res/new_source.png
+	cp $TEMP_Output/sshot/full_res/registeredImage.png $PATH_Output/sshot/full_res/registeredImage.png
+	
 
 	#montage -geometry +0+0 -tile 3x $TEMP_Output/sshot/full_res/*.png $PATH_Output/sshot/full_res/$name_moving"_to_"$name_fixed"_full_res.png"
 fi
 
+mv $TEMP_Output/small_Affine.mat $PATH_Output/small_Affine.mat
+mv $TEMP_Output/small_warp.nii.gz $PATH_Output/small_warp.nii.gz
+mv $TEMP_Output/small_inv_warp.nii.gz $PATH_Output/small_inv_warp.nii.gz
+
+if [[ $apply_full_res -eq 1 ]];then
+	mv $TEMP_Output/Affine.mat $PATH_Output/Affine.mat
+	mv $TEMP_Output/big_warp_no_pad_trim.nii.gz $PATH_Output/warp.nii.gz
+fi
 
 
 if [[ $SAVE -eq 1 ]];then
@@ -857,18 +865,11 @@ if [[ $SAVE -eq 1 ]];then
 	echo "Saving files..."
 	mv $TEMP_Output/new_small_target_padded.nii.gz $PATH_Output/new_small_target_padded.nii.gz
 	mv $TEMP_Output/new_small_source_padded.nii.gz $PATH_Output/new_small_source_padded.nii.gz
-	mv $TEMP_Output/small_Affine.mat $PATH_Output/small_Affine.mat
-	mv $TEMP_Output/small_warp.nii.gz $PATH_Output/small_warp.nii.gz
 	mv $TEMP_Output/small_registeredImage.nii.gz $PATH_Output/small_registeredImage.nii.gz
-	mv $TEMP_Output/small_inv_warp.nii.gz $PATH_Output/small_inv_warp.nii.gz
-	
 	if [[ $apply_full_res -eq 1 ]];then
 		mv $TEMP_Output/new_target.nii.gz $PATH_Output/new_target.nii.gz
 		mv $TEMP_Output/new_source.nii.gz $PATH_Output/new_source.nii.gz
 		mv $TEMP_Output/registeredImage.nii.gz $PATH_Output/registeredImage.nii.gz
-		mv $TEMP_Output/Affine.mat $PATH_Output/Affine.mat
-		mv $TEMP_Output/big_warp_no_pad_trim.nii.gz $PATH_Output/warp.nii.gz
-		
 	fi
 fi
 
