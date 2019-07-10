@@ -66,6 +66,8 @@ set -e;
 start_full_script=`date +%s`
 TEMP_Output=${SBIA_TMPDIR}"/"$JOB_NAME_$JOB_ID;
 
+# test commit
+
 # Initial parameters
 s1=6;
 s2=5;
