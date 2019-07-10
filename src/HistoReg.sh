@@ -797,9 +797,9 @@ if [ $apply_small_res -eq 1 ];then
 	-o $TEMP_Output/sshot/small_registeredImage.png
 
 
-	mv $TEMP_Output/sshot/full_res/new_small_target.png $PATH_Output/sshot/new_small_target.png
-	mv $TEMP_Output/sshot/full_res/new_small_source.png $PATH_Output/sshot/new_small_source.png
-	mv $TEMP_Output/sshot/full_res/small_registeredImage.png $PATH_Output/sshot/small_registeredImage.png
+	mv $TEMP_Output/sshot/new_small_target.png $PATH_Output/sshot/new_small_target.png
+	mv $TEMP_Output/sshot/new_small_source.png $PATH_Output/sshot/new_small_source.png
+	mv $TEMP_Output/sshot/small_registeredImage.png $PATH_Output/sshot/small_registeredImage.png
 
 	end=`date +%s`
 	runtime_resl_small=$(($end-$start))
