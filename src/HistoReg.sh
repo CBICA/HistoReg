@@ -72,6 +72,7 @@ s2=5;
 resample=4;
 smoothing=12;
 Kernel_Divider=40;
+iteration=5000;
 
 # Flag for optional parameters
 VERBOSE=0;
@@ -202,7 +203,7 @@ function Help {
 
 
 # get user inputs
-while getopts m:f:o:l:g:c:k:s:r:hFVSM option
+while getopts m:f:o:l:g:c:k:s:r:i:hFVSM option
 do
   case "${option}"
   in
@@ -224,6 +225,7 @@ do
     r)  resample=${OPTARG};
 	resample_provided=1;;
     k) Kernel_Divider=${OPTARG};;
+    i) iteration=${OPTARG};;
     V)	VERBOSE=1;
         #echoV "VERBOSE Mode on";
         ;;
@@ -285,7 +287,7 @@ echoV "Preprocessing I : Resample images"
 # I/ 1/ Smoothing and resampling source and target to the disered resolution
 # Target
 echoV "Target"
-echoV "$c2d_executable $fixed -smooth-fast $smoothing"x"$smoothing"vox" -resample $resample"%" -spacing 1x1mm -orient LP -origin 0x0mm -o $TEMP_Output/new_small_target.nii.gz;"
+echoV "$c2d_executable $fixed -smooth-fast $smoothing"x"$smoothing"vox" -resample $resample"%" -spacing 1x1mm -orient LP -origin 0x0mm -o $PATH_Output/new_small_target.nii.gz;"
 echoV "Source"
 $c2d_executable $fixed -smooth-fast $smoothing"x"$smoothing"vox" -resample $resample"%" -spacing 1x1mm -orient LP -origin 0x0mm -o $TEMP_Output/new_small_target.nii.gz;
 
@@ -293,9 +295,7 @@ $c2d_executable $fixed -smooth-fast $smoothing"x"$smoothing"vox" -resample $resa
 echoV "$c2d_executable $moving -smooth-fast $smoothing"x"$smoothing"vox" -resample $resample"%" -spacing 1x1mm -orient LP -origin 0x0mm -o $TEMP_Output/new_small_source.nii.gz;"
 $c2d_executable $moving -smooth-fast $smoothing"x"$smoothing"vox" -resample $resample"%" -spacing 1x1mm -orient LP -origin 0x0mm -o $TEMP_Output/new_small_source.nii.gz;
 
-
 # I/ 2/ Pad images.
-echoV "*****"
 echoV "Preprocessing II : Pad images"
 echoV "Target"
 
@@ -332,7 +332,6 @@ stat_target=`$c2d_executable $TEMP_Output/new_small_target.nii.gz -dup -cmv -pop
 mean_target=`echo $stat_target | cut -d ' ' -f2`
 std_target=`echo $stat_target | cut -d ' ' -f3`
 
-echoV "*****"
 echoV "Same with source"
 # Same idea with source
 # Get new size of images after resample
@@ -412,7 +411,6 @@ else
 	cp $TEMP_Output/new_small_target.nii.gz $TEMP_Output/new_small_target_padded.nii.gz
 fi 
 
-echoV "*****"
 echoV "Padding target"
 # We don't want to pad with zeros but with intensity close to the background.
 # Target 
@@ -462,7 +460,6 @@ $c2d_executable $TEMP_Output/mask_target.nii.gz $TEMP_Output/new_small_target_pa
 -add \
 -o $TEMP_Output/new_small_target_padded.nii.gz
 
-echoV "*****"
 echoV "Padding source"
 # Same idea with source.
 # a/
@@ -505,8 +502,8 @@ $c2d_executable $TEMP_Output/mask_source.nii.gz $TEMP_Output/new_small_source_pa
 
 echoV "End preprocessing."
 end=`date +%s`
-runtime=$(($end-$start))
-echo "Preprocessing took :" $runtime" secondes"
+runtime_preproc=$(($end-$start))
+echo "Preprocessing took :" $runtime_preproc" secondes"
 
 
 # Get new size of source and target images after padding
@@ -537,7 +534,7 @@ offset=`bc <<< $Size_W/10`
 start=`date +%s`
 
 echoV "$greedy_executable -d 2 \
--a -search 5000 180 $offset \
+-a -search $iteration 180 $offset \
 -m NCC $kernel"x"$kernel \
 -i $TEMP_Output/new_small_target_padded.nii.gz $TEMP_Output/new_small_source_padded.nii.gz \
 -o $TEMP_Output/small_Affine.mat \
@@ -545,7 +542,7 @@ echoV "$greedy_executable -d 2 \
 -n 100x50x10 \
 -ia-image-centers"
 $greedy_executable -d 2 \
--a -search 5000 180 $offset \
+-a -search $iteration 180 $offset \
 -m NCC $kernel"x"$kernel \
 -i $TEMP_Output/new_small_target_padded.nii.gz $TEMP_Output/new_small_source_padded.nii.gz \
 -o $TEMP_Output/small_Affine.mat \
@@ -555,7 +552,6 @@ $greedy_executable -d 2 \
 
 end_affine=`date +%s`
 
-echoV "*****"
 # II/ 2/ Diffeomorphic
 echoV "Computing non-rigid registration"
 
@@ -581,11 +577,11 @@ end=`date +%s`
 
 runtime_aff=$(($end_affine-$start))
 runtime_deff=$(($end-$end_affine))
-runtime=$(($end-$start))
+runtime_reg=$(($end-$start))
 
 echo "Computation of the affine matrix took :" $runtime_aff" secondes"
 echo "Computation of the deformable field took :" $runtime_deff" secondes"
-echo "Computation of the both deformable and affine registration took :" $runtime" secondes"
+echo "Computation of the both deformable and affine registration took :" $runtime_reg" secondes"
 
 echo "------------------------------------------------------------------------------------------"
 echo "Adaptating small metrics to full resolution images..."
@@ -680,9 +676,9 @@ $c2d_executable -mcs $TEMP_Output/small_warp_no_pad.nii.gz \
 -omc $TEMP_Output/small_warp_no_pad_trim.nii.gz
 
 end=`date +%s`
-runtime=$(($end-$start))
+runtime_small_to_big=$(($end-$start))
 
-echo "Adaptation of small warp and small affine matrix to full resolution images took :" $runtime_aff" secondes"
+echo "Adaptation of small warp and small affine matrix to full resolution images took :" $runtime_small_to_big" secondes"
 
 # Apply transformation on landmarks if they're provided
 if [ $landmarks_provided -eq 1 ];then
@@ -747,8 +743,8 @@ if [ $apply_small_res -eq 1 ];then
 	-rm $TEMP_Output/new_small_source.nii.gz $TEMP_Output/small_registeredImage.nii.gz \
 	-r $TEMP_Output/small_warp.nii.gz $TEMP_Output/small_Affine.mat"
 	$greedy_executable -d 2 \
-	-rf $TEMP_Output/new_small_target.nii.gz \
-	-rm $TEMP_Output/new_small_source.nii.gz $TEMP_Output/small_registeredImage.nii.gz \
+	-rf $TEMP_Output/new_small_target_padded.nii.gz \
+	-rm $TEMP_Output/new_small_source_padded.nii.gz $TEMP_Output/small_registeredImage.nii.gz \
 	-r $TEMP_Output/small_warp.nii.gz $TEMP_Output/small_Affine.mat
 
 	# Create directory to store result
@@ -756,14 +752,13 @@ if [ $apply_small_res -eq 1 ];then
 	mkdir -p $PATH_Output/sshot/
 
 	# Convert moving, target and resliced image to PNG file
-	echoV "*****"
 	echoV "Convert NIFTI to PNG"
 	echoV "Target"
 	echoV "$c2d_executable $TEMP_Output/new_small_target.nii.gz \
 	-stretch 0 99% 0 255 -type uchar \
 	-o $TEMP_Output/sshot/new_small_target.png"
-	$c2d_executable $TEMP_Output/new_small_target.nii.gz \
-	-stretch 0 99% 0 255 -type uchar \
+	$c2d_executable $TEMP_Output/new_small_target_padded.nii.gz \
+	-type uchar \
 	-o $TEMP_Output/sshot/new_small_target.png
 
 
@@ -771,8 +766,8 @@ if [ $apply_small_res -eq 1 ];then
 	echoV "$c2d_executable $TEMP_Output/new_small_source.nii.gz \
 	-stretch 0 99% 0 255 -type uchar \
 	-o $TEMP_Output/sshot/new_small_source.png"
-	$c2d_executable $TEMP_Output/new_small_source.nii.gz \
-	-stretch 0 99% 0 255 -type uchar \
+	$c2d_executable $TEMP_Output/new_small_source_padded.nii.gz \
+	-type uchar \
 	-o $TEMP_Output/sshot/new_small_source.png
 
 	echoV "resliced source"
@@ -780,13 +775,13 @@ if [ $apply_small_res -eq 1 ];then
 	-stretch 0 99% 0 255 -type uchar \
 	-o $TEMP_Output/sshot/small_registeredImage.png"
 	$c2d_executable $TEMP_Output/small_registeredImage.nii.gz \
-	-stretch 0 99% 0 255 -type uchar \
+	-type uchar \
 	-o $TEMP_Output/sshot/small_registeredImage.png
 
-	# Create a new image with these 3 together
-	echoV "Fuse 3 images into 1 for visualization"
-	echoV "montage -geometry +0+0 -tile 3x $TEMP_Output/sshot/*.png $PATH_Output/sshot/$name_moving"_to_"$name_fixed.png"
-	montage -geometry +0+0 -tile 3x $TEMP_Output/sshot/*.png $PATH_Output/sshot/$name_moving"_to_"$name_fixed.png
+
+	mv $TEMP_Output/sshot/full_res/new_small_target.png $PATH_Output/sshot/new_small_target.png
+	mv $TEMP_Output/sshot/full_res/new_small_source.png $PATH_Output/sshot/new_small_source.png
+	mv $TEMP_Output/sshot/full_res/small_registeredImage.png $PATH_Output/sshot/small_registeredImage.png
 
 	end=`date +%s`
 	runtime=$(($end-$start))
@@ -800,8 +795,6 @@ if [[ $apply_full_res -eq 1 ]];then
 	echo "Applying on full scale images..."
 	# Start new timer
 	start=`date +%s`
-
-	echoV "*****"
 
 	echoV "Modifying small warp..."
 	echoV "Full resolution size : "$Size_W_big"x"$Size_H_big
@@ -872,19 +865,25 @@ if [[ $apply_full_res -eq 1 ]];then
 	-r $TEMP_Output/big_warp.nii.gz $TEMP_Output/Affine.mat
 
 	end=`date +%s`
-	runtime=$(($end-$start))
-	echo "Reslicing the full resolution images took :" $runtime" secondes"
+	runtime_full_res=$(($end-$start))
+	echo "Reslicing the full resolution images took :" $runtime_full_res" secondes"
 
 
 	mkdir -p $TEMP_Output/sshot/full_res
-	$c2d_executable -mcs $TEMP_Output/new_target.nii.gz -foreach -stretch 0 99% 0 255 -type uchar -endfor -omc $TEMP_Output/sshot/full_res/new_target.png
-	$c2d_executable -mcs $TEMP_Output/new_source.nii.gz -foreach -stretch 0 99% 0 255 -type uchar -endfor -omc $TEMP_Output/sshot/full_res/new_source.png
-	$c2d_executable -mcs $TEMP_Output/registeredImage.nii.gz -foreach -stretch 0 99% 0 255 -type uchar -endfor -omc $TEMP_Output/sshot/full_res/registeredImage.png
+
+	echo "Converting to PNGs..."
+	$c2d_executable -mcs $TEMP_Output/new_target.nii.gz -foreach -type uchar -endfor -omc $TEMP_Output/sshot/full_res/new_target.png
+	echo "1/3 done..."
+	$c2d_executable -mcs $TEMP_Output/new_source.nii.gz -foreach -type uchar -endfor -omc $TEMP_Output/sshot/full_res/new_source.png
+	echo "2/3 done..."
+	$c2d_executable -mcs $TEMP_Output/registeredImage.nii.gz -foreach -type uchar -endfor -omc $TEMP_Output/sshot/full_res/registeredImage.png
+	echo "3/3 done."
 	
+	echo "Moving to output directory.."
 	mkdir -p $PATH_Output/sshot/full_res
-	cp $TEMP_Output/sshot/full_res/new_target.png $PATH_Output/sshot/full_res/new_target.png
-	cp $TEMP_Output/sshot/full_res/new_source.png $PATH_Output/sshot/full_res/new_source.png
-	cp $TEMP_Output/sshot/full_res/registeredImage.png $PATH_Output/sshot/full_res/registeredImage.png
+	mv $TEMP_Output/sshot/full_res/new_target.png $PATH_Output/sshot/full_res/new_target.png
+	mv $TEMP_Output/sshot/full_res/new_source.png $PATH_Output/sshot/full_res/new_source.png
+	mv $TEMP_Output/sshot/full_res/registeredImage.png $PATH_Output/sshot/full_res/registeredImage.png
 
 
 	#montage -geometry +0+0 -tile 3x $TEMP_Output/sshot/full_res/*.png $PATH_Output/sshot/full_res/$name_moving"_to_"$name_fixed"_full_res.png"
@@ -922,16 +921,17 @@ if [[ $SAVE -eq 1 ]];then
 fi
 
 end=`date +%s`
-runtime=$(($end-$start))
-echo "Saving files took :" $runtime" secondes"
+runtime_saving=$(($end-$start))
+echo "Saving files took :" $runtime_saving" secondes"
+echo $runtime_preproc > $PATH_Output/Time_preproc.txt
+echo $runtime_reg > $PATH_Output/Time_reg.txt
+echo $runtime_small_to_big > $PATH_Output/Time_small_to_big.txt
+
 end_full_script=`date +%s`
 runtime_full_script=$(($end_full_script-$start_full_script))
 echo "End."
+echo $runtime_full_script > $PATH_Output/Time_total.txt
 echo "Script took : "$runtime_full_script" seconds to run."
-
-
-
-
 
 
 
