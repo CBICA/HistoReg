@@ -90,11 +90,11 @@ function Help {
 
   echo -e "\n";
   echo -e "    -c  [path]/path/to/${UNDERLINE_YELLOW}c${REGULAR_RED}2d/executable";
-  echo -e "    (default=$c2d_executable)"
+  echo -e "    (default=$c2d_executable, supposes that it was added to the PATH)"
 
   echo -e "\n";
   echo -e "    -g  [path]/path/to/${UNDERLINE_YELLOW}g${REGULAR_RED}reedy/executable";
-  echo -e "    (default=$greedy_executable)"
+  echo -e "    (default=$greedy_executable, supposes that it was added to the PATH)"
 
   echo -e "\n";
   echo -e "    -t	 [path]/full/path/to/${UNDERLINE_YELLOW}t${REGULAR_RED}emp/directory";
