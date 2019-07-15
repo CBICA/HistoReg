@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 ####
+
 ################################## START OF EMBEDDED SGE COMMANDS ##########################
 
 ######## Common options ########
@@ -61,7 +62,7 @@
 ####$ -l brats=TRUE  #### Only go to a node that has brats flag on - check with system administrator for details
 ############################## END OF DEFAULT EMBEDDED SGE COMMANDS #######################
 
-version="06.18.2019";
+version="07.15.2019";
 set -e;
 start_full_script=`date +%s`
 TEMP_Output=${SBIA_TMPDIR}"/"$JOB_NAME_$JOB_ID;
@@ -209,8 +210,6 @@ do
   in
     s) multi+=("$OPTARG");; #smoothing_parameters+=$OPTARD;;
     h)	Help;   #show help documentation
-        #echo_system_information;  #show system information
-        #echo_sge_default;         #show SGE default flag information
         exit 0;
         ;;
     m)  moving=${OPTARG};;   #jpg
@@ -237,8 +236,6 @@ do
 	echo "Reslice small resolution images ON";;
     ?)	echo "Unrecognized Options. Exiting. " 1>&2;
         Help;
-        echo_system_information;
-        echo_sge_default;
         exit 1;
         ;;
   esac
@@ -266,13 +263,12 @@ name_moving=`basename $moving | cut -d . -f1`;
 
 # Create Output and temporary directory
 echoV "Creating output and temporary directories"
-mkdir -p $PATH_Output/$name_moving"_registered_to_"$name_fixed;
-mkdir -p $TEMP_Output;
+
 PATH_Output=$PATH_Output/$name_moving"_registered_to_"$name_fixed;
+mkdir -p $TEMP_Output;
 mkdir -p $PATH_Output/metrics
 
-# Extract size of images 
-### !!! NEED TO BE REPLACE BY C2D !!! ###
+# Extract size of images
 Size_H_big=`img_dim $fixed 2`
 Size_W_big=`img_dim $fixed 1`
 Size_H_source_big=`img_dim $moving 2`
@@ -598,13 +594,12 @@ rm -f $TEMP_Output/Affine.mat
 
 i=0
 
+factor=`bc <<< 100/$resample`
 for line in $lines
 do
 	if [[ $i -lt 2 ]];then
 		line_to_keep=`echo $line | cut -d , -f1-2`
 		translation_to_change=`echo $line | cut -d , -f3`
-		#new_translation=`echo $(( $translation_to_change * 25 ))`
-		factor=`bc <<< 100/$resample`
 		new_translation=`bc <<< $translation_to_change*$factor`
 		new_line=$line_to_keep","$new_translation
 	fi
@@ -622,10 +617,6 @@ tr ',' ' ' <$TEMP_Output/temp_Affine.mat> $TEMP_Output/Affine.mat
 echoV "Modifying warp..."
 
 # We want to apply transformation to the original images that are NOT PADDED.
-# Get size difference between small padded images and small images before padding.
-Diff_W_Target=`bc <<< $Size_W-$Size_W_init`
-Diff_H_Target=`bc <<< $Size_H-$Size_H_init`
-
 # Create a 1 intensity image of the size of the full resolution target without padding
 echoV "Creating new image of the size of the original target..."
 echoV "$c2d_executable -background 1 \
@@ -663,7 +654,7 @@ $c2d_executable -mcs $TEMP_Output/small_warp.nii.gz \
 -origin 0x0mm \
 -omc $TEMP_Output/small_warp.nii.gz
 
-# Multiply the mask and the full resolution warp image to force to 0 every value in the padded part of the warp image.
+# Multiply the mask and the warp image to force to 0 every value in the padded part of the warp image.
 echoV "Multiplying both images together..."
 echoV "$c2d_executable $TEMP_Output/mask_padded.nii.gz -popas mask \
 -mcs $TEMP_Output/small_warp.nii.gz \
@@ -690,6 +681,24 @@ $c2d_executable -mcs $TEMP_Output/small_warp_no_pad.nii.gz \
 -trim 0vox \
 -endfor \
 -omc $TEMP_Output/small_warp_no_pad_trim.nii.gz
+
+# Resample small warp image to the full resolution and scale it with the scale we resampled the image to. (the warp image is a matrix that contains a translation vector for each pixel of the target image, we need to scale this translation to the new resolution as we did for the affine matrix)
+echoV "Resampling small warp to full resolution with padding..."
+echoV "$c2d_executable -mcs $TEMP_Output/small_warp_no_pad_trim.nii.gz \
+-foreach \
+-resample $Size_W_big"x"$Size_H_big \
+-scale $factor \
+-spacing 1x1mm -origin 0x0mm \
+-endfor \
+-omc $TEMP_Output/big_warp.nii.gz"
+time $c2d_executable -mcs $TEMP_Output/small_warp_no_pad_trim.nii.gz \
+-foreach \
+-resample $Size_W_big"x"$Size_H_big \
+-scale $factor \
+-spacing 1x1mm -origin 0x0mm \
+-endfor \
+-omc $TEMP_Output/big_warp.nii.gz
+
 
 end=`date +%s`
 runtime_small_to_big=$(($end-$start))
@@ -751,7 +760,6 @@ if [ $apply_small_res -eq 1 ];then
 	echo "------------------------------------------------------------------------------------------"
 	echo "Applying on small grayscale images..."
 	start=`date +%s`
-	#!!!! APPLYING ON GRAYSCALE IMAGES !!!
 
 	# Reslice small source padded
 	echoV "$greedy_executable -d 2 \
@@ -794,7 +802,6 @@ if [ $apply_small_res -eq 1 ];then
 	-type uchar \
 	-o $TEMP_Output/sshot/small_registeredImage.png
 
-
 	mv $TEMP_Output/sshot/full_res/new_small_target.png $PATH_Output/sshot/new_small_target.png
 	mv $TEMP_Output/sshot/full_res/new_small_source.png $PATH_Output/sshot/new_small_source.png
 	mv $TEMP_Output/sshot/full_res/small_registeredImage.png $PATH_Output/sshot/small_registeredImage.png
@@ -814,24 +821,8 @@ if [[ $apply_full_res -eq 1 ]];then
 
 	echoV "Modifying small warp..."
 	echoV "Full resolution size : "$Size_W_big"x"$Size_H_big
-	# Resample small warp image to this resolution and scale it with the scale we resampled the image to. (the warp image is a matrix that contains a translation vector for each pixel of the target image, we need to scale this translation to the new resolution as we did for the affine matrix)
-	echoV "Resampling small warp to full resolution with padding..."
-	echoV "$c2d_executable -mcs $TEMP_Output/small_warp_no_pad_trim.nii.gz \
-	-foreach \
-	-resample $Size_W_big"x"$Size_H_big \
-	-scale $factor \
-	-spacing 1x1mm -origin 0x0mm \
-	-endfor \
-	-omc $TEMP_Output/big_warp.nii.gz"
-	$c2d_executable -mcs $TEMP_Output/small_warp_no_pad_trim.nii.gz \
-	-foreach \
-	-resample $Size_W_big"x"$Size_H_big \
-	-scale $factor \
-	-spacing 1x1mm -origin 0x0mm \
-	-endfor \
-	-omc $TEMP_Output/big_warp.nii.gz
-
 	echoV "Converting source and target to nifti files with good orientation, pixel spacing and origin..."
+
 	echoV "Target"
 	# Convert source and target images to NIFTI files after fixing their orientation, pixel spacing and origin.
 	echoV "$c2d_executable -mcs $fixed \
@@ -854,7 +845,6 @@ if [[ $apply_full_res -eq 1 ]];then
 	-foreach -orient LP -spacing 1x1mm -origin 0x0mm \
 	-endfor \
 	-omc $TEMP_Output/new_source.nii.gz
-
 
 	# Change full resolution warp image origin so it matches the one of the source and target images.
 	echoV "Modifying origin of mask..."
@@ -884,7 +874,7 @@ if [[ $apply_full_res -eq 1 ]];then
 	runtime_resl_full_res=$(($end-$start))
 	echo "Reslicing the full resolution images took :" $runtime_resl_full_res" secondes"
 
-
+	# Create directory to store PNGs files
 	mkdir -p $TEMP_Output/sshot/full_res
 
 	echo "Converting to PNGs..."
