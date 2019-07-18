@@ -1,21 +1,17 @@
 #include <iostream>
 #include <fstream>
-#include <bits/stdc++.h> 
-#include <sys/stat.h> 
-#include <sys/types.h> 
-#include <string>
-#include <stdlib.h>
+//#include <bits/stdc++.h> 
+//#include <sys/stat.h> 
+// #include <sys/types.h> 
+//#include <string>
+// #include <stdlib.h>
 
-//#include <ctime>
 #include <chrono>
 
 #include "itkImageIOBase.h"
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
 
-//#include "itkImage.h"
-//#include "itkImageFileReader.h"
-//#include "../include/ConvertImageND.h"
 
 
 
@@ -103,11 +99,6 @@ static void show_usage(string name)
 
 int main(int argc, char* argv[])
 {
-    // clock_t start_script;
-    // double duration;
-
-    // start_script = clock();
-
     chrono::time_point<chrono::system_clock> start_script, end_script;
     int duration;
     start_script = chrono::system_clock::now();
@@ -115,15 +106,10 @@ int main(int argc, char* argv[])
     cout << "Starting..." << '\n';
 
 
-    if (argc < 3) { // We expect 4 arguments: the program name, the source path, the target path and the output path
+    if (argc < 4) { // We expect 4 arguments: the program name, the source path, the target path and the output path
         show_usage(argv[0]);
         return 1;
     }
-
-    // string PATH_source=argv[1];
-    // string PATH_target=argv[2];
-    // string PATH_Output_DIR=argv[3];
-    // string apply_full_res=argv[4];
 
     // Compulsory arguments
     string PATH_Output_DIR;
