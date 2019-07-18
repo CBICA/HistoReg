@@ -121,6 +121,7 @@ int main(int argc, char* argv[])
     int Fixed_provided = 0;
     int Moving_provided = 0;
     int c2d_executable_provided = 0;
+	int greedy_executable_provided = 0;
     int Flag_Full_Resolution = 0;
     int Flag_landmarks = 0;
 
@@ -204,6 +205,16 @@ int main(int argc, char* argv[])
                     return 1;
                 }
             }
+			if ((arg == "-g") || (arg == "--greedy_executable")) {
+				if (i + 1 < argc) { // Make sure we aren't at the end of argv!
+					greedy_executable = argv[++i];
+					greedy_executable_provided = 1;
+				}
+				else { // Uh-oh, there was no argument to the destination option.
+					cerr << "--greedy_executable option requires one argument." << '\n';
+					return 1;
+				}
+			}
         }
     }
 
@@ -243,10 +254,12 @@ int main(int argc, char* argv[])
     string PATH_Output_Temp = PATH_Output + "/tmp";
 
     // Create output folder
-    //createDir(PATH_Output.c_str());
+    createDir(PATH_Output.c_str());
     createDir(PATH_Output_Temp.c_str());
 
     cout << "Done." << '\n';
+
+	return 1;
 
     // TO REMOVE
     chrono::time_point<chrono::system_clock> start_size, end_size;
