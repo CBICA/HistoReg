@@ -93,10 +93,6 @@ static void show_usage(string name)
               << endl;
 }
 
-// int img_dim(string PATH_image, int dim){
-    
-// }
-
 int main(int argc, char* argv[])
 {
     chrono::time_point<chrono::system_clock> start_script, end_script;
@@ -116,8 +112,10 @@ int main(int argc, char* argv[])
     string PATH_source;
     string PATH_target;
     string PATH_landmarks;
-    //string c2d_executable = "/cbica/home/venetl/comp_space/itksnap-experimental-master-Linux-gcc64/itksnap-3.8.0-beta-20181028-Linux-gcc64/bin/c2d";
-    string c2d_executable;
+
+    //Executables
+    string c2d_executable = "/cbica/home/venetl/comp_space/itksnap-experimental-master-Linux-gcc64/itksnap-3.8.0-beta-20181028-Linux-gcc64/bin/c2d";
+    string greedy_executable = "/cbica/home/venetl/comp_space/Greedy/bin/greedy";
 
     // Optional arguments
     string resample = "4";
@@ -197,6 +195,7 @@ int main(int argc, char* argv[])
             if ((arg == "-l") || (arg == "--landmarks")){
                 if (i + 1 < argc){ // Make sure we aren't at the end of argv!
                     PATH_landmarks = argv[++i];
+                    Flag_landmarks = 1;
                 }else { // Uh-oh, there was no argument to the destination option.
                     cerr << "--landmarks option requires one argument." << '\n';
                     return 1;
@@ -224,7 +223,7 @@ int main(int argc, char* argv[])
     string s2 = "5";
 
     cout << "Done." << '\n';
-
+    
     // Prints arguments
     
     // cout << PATH_source << '\n';
@@ -355,7 +354,7 @@ int main(int argc, char* argv[])
     end_size = chrono::system_clock::now();
     duration = chrono::duration_cast<chrono::seconds> (end_size-start_size).count();
     cout << "It took " << duration << " secondes to run." << '\n';
-
+    
     // Print sizes
     // cout << "   Small_target_W : " << Size_small_target_W << '\n';
     // cout << "   Small_target_H : " << Size_small_target_H << '\n';
@@ -516,7 +515,6 @@ int main(int argc, char* argv[])
 
     // Registration
     // Affine
-    string greedy_executable = "/cbica/home/venetl/comp_space/Greedy/bin/greedy";
     int offset = (stoi(Size_small_target_H) + four_kernel) / 10;
     string PATH_small_affine = PATH_Output + string("/small_Affine.mat");
     string command_affine = greedy_executable + " -d 2 -a -search " + iteration + " 180 " + to_string(offset) + " -m NCC " + to_string(kernel) + "x" + to_string(kernel) + " -i " + PATH_small_target_padded + " " + PATH_small_source_padded + " -o " + PATH_small_affine + " -gm-trim " + to_string(kernel) + "x" + to_string(kernel) + " -n 150x50x10 -ia-image-centers";
@@ -607,13 +605,106 @@ int main(int argc, char* argv[])
     system(command.c_str());
 
     cout << "   Warp done." << '\n';
-
+    
     if ( Flag_landmarks == 1 ){
         cout << "   Apply transformation to landmarks..." << '\n';
-        cout << "UNFINISHED YET" << '\n';
+
+        ifstream data(PATH_landmarks);
+        string line;
+        vector<vector<string>> CSV;
+
+        while(getline(data,line)){
+            stringstream lineStream(line);
+            string cell;
+            vector<string> ROW;
+            while (getline(lineStream,cell,',')){
+                ROW.push_back(cell);
+            }
+
+            CSV.push_back(ROW);
+        }
+
+        // Convert landmarks to small resolution
+        vector<vector<float>> CSV_small;
+        float x, y, small_x, small_y;
+        
+        for ( unsigned i = 1; i < CSV.size(); i++){
+            vector<float> ROW_small;
+            x = stof(CSV[i][1]);
+            y = stof(CSV[i][2]);
+
+            small_x = x *1.0*stoi(Size_small_source_W)/stoi(Size_original_source_W)-0.5;
+            small_y = y *1.0*stoi(Size_small_source_H)/stoi(Size_original_source_H)-0.5;
+            
+            ROW_small.push_back(small_x);
+            ROW_small.push_back(small_y);
+
+            CSV_small.push_back(ROW_small);
+        }
+
+        string PATH_small_landmarks = PATH_Output_Temp + "/lm_small_source.csv";
+        ofstream myfile;
+        myfile.precision(numeric_limits<float>::digits10);
+        myfile.open(PATH_small_landmarks);
+
+        for ( unsigned i = 0; i < CSV_small.size(); i++){
+            for ( unsigned j = 0; j < CSV_small[i].size(); j++){
+                myfile << CSV_small[i][j] << ",";
+            }
+            myfile << '\n';
+        }
+        myfile.close();
+
+        // Apply transformation
+        string PATH_small_warped_landmarks = PATH_Output_Temp + "/lm_small_source_warped.csv";
+
+        string command_landmarks = greedy_executable + " -d 2 -rf " + PATH_small_source + " -rs " + PATH_small_landmarks + " " + PATH_small_warped_landmarks + " -r " + PATH_small_affine + ",-1 " + PATH_small_inv_warp;
+        system(command_landmarks.c_str());
+
+        // Convert small landmarks to full resolution
+        ifstream data2(PATH_small_warped_landmarks);
+        vector<vector<string>> CSV_small_warped;
+
+        while(getline(data2,line)){
+            stringstream lineStream(line);
+            string cell;
+            vector<string> ROW;
+            while (getline(lineStream,cell,',')){
+                ROW.push_back(cell);
+            }
+
+            CSV_small_warped.push_back(ROW);
+        }
+
+        vector<vector<float>> CSV_warped;
+        for ( unsigned i = 1; i < CSV_small_warped.size(); i++){
+            vector<float> ROW;
+            small_x = stof(CSV_small_warped[i][0]);
+            small_y = stof(CSV_small_warped[i][1]);
+
+            x = (small_x+0.5)*stoi(Size_original_target_W)/stoi(Size_small_target_W);
+            y = (small_y+0.5)*stoi(Size_original_target_H)/stoi(Size_small_target_H);
+            
+            ROW.push_back(x);
+            ROW.push_back(y);
+
+            CSV_warped.push_back(ROW);
+        }
+
+        string PATH_warped_landmarks = PATH_Output + "/warped_landmarks.csv";
+        myfile.precision(numeric_limits<float>::digits10);
+        myfile.open(PATH_warped_landmarks);
+        myfile << ",X,Y," << '\n';
+
+        for ( unsigned i = 0; i < CSV_warped.size(); i++){
+            for ( unsigned j = 0; j < CSV_warped[i].size(); j++){
+                myfile << i << "," << CSV_warped[i][j] << ",";
+            }
+            myfile << '\n';
+        }
         cout << "   Done." << '\n';
     }
-
+    
     if ( Flag_Full_Resolution == 1){
         // Apply full res
         // Convert source and target to niftis with good orientation, pixel spacing ,origin ..
@@ -640,12 +731,9 @@ int main(int argc, char* argv[])
 
     cout << "Program finished." << '\n';
 
-    // clock_t end_script = clock();
-    // duration = ( end_script - start_script ) / (float) CLOCKS_PER_SEC;
-
     end_script = chrono::system_clock::now();
     duration = chrono::duration_cast<chrono::seconds> (end_script-start_script).count();
     cout << "It took " << duration << " secondes to run." << '\n';
-
+    
 	return EXIT_SUCCESS;
 }
