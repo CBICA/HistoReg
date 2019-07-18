@@ -1,836 +1,665 @@
-#include <cmath>
+#include <iostream>
 #include <fstream>
-#include "cbicaUtilities.h"
-#include <iostream>
-#include "opencv2/opencv.hpp"
-#include "opencv2/xfeatures2d.hpp"
-//#include "opencv2/optflow.hpp"
-#include <iostream>
+#include <bits/stdc++.h> 
+#include <sys/stat.h> 
+#include <sys/types.h> 
 #include <string>
-#include <sstream>
-#include <cstdlib>
+#include <stdlib.h>
 
-#include <numeric>
-#include "cbicaITKSafeImageIO.h"
+//#include <ctime>
+#include <chrono>
 
-#include "itkRGBPixel.h"
+#include "itkImageIOBase.h"
+#include "itkImageFileReader.h"
+#include "itkImageFileWriter.h"
 
-struct DrawMatchesFlags
+//#include "itkImage.h"
+//#include "itkImageFileReader.h"
+//#include "../include/ConvertImageND.h"
+
+
+
+using namespace std;
+
+bool BothAreSpaces(char lhs, char rhs) { return (lhs == rhs) && (lhs == ' '); }
+
+string basename(string const& input)
 {
-    enum
-    {
-        DEFAULT = 0, // Output image matrix will be created (Mat::create),
-                     // i.e. existing memory of output image may be reused.
-                     // Two source images, matches, and single keypoints
-                     // will be drawn.
-                     // For each keypoint, only the center point will be
-                     // drawn (without a circle around the keypoint with the
-                     // keypoint size and orientation).
-        DRAW_OVER_OUTIMG = 1, // Output image matrix will not be
-                       // created (using Mat::create). Matches will be drawn
-                       // on existing content of output image.
-        NOT_DRAW_SINGLE_POINTS = 2, // Single keypoints will not be drawn.
-        DRAW_RICH_KEYPOINTS = 4 // For each keypoint, the circle around
-                       // keypoint with keypoint size and orientation will
-                       // be drawn.
-    };
-};
-
-//! A helper struct to store some variables
-struct TranslationUnit
-{
-  // NOT SURE IF IMPORTANT
-  //cv::KeyPoint source;
-  //cv::KeyPoint target;
-  cv::Point_<float> source;
-  cv::Point_<float> target;
-
-  float x; //! translation along x
-  float y; //! translation along y
-  float absoluteDistance; //! absolute distance between x and y - does NOT account for direction
-  void Update()
-  {
-    absoluteDistance = std::sqrt(std::pow(x, 2) + std::pow(y, 2));
-  }
-};
-
-// READ ONLY LANDMARK CSV
-std::vector <std::vector<float>> Read_CSV_landmark (std::string PATH_to_CSV)
-{
-  std::ifstream file (PATH_to_CSV);
-  std::string line;
-  std::vector <std::vector<float>> Tab;
-  std::vector <float> LineTab;
-
-
-  //skip frist line 
-  getline(file,line);
-
-
-  while (file.good())
-  {
-    getline(file,line);
-    //std::cout << line << '\n';
-    
-
-    // Only consider the two coordinates x,y, so between the 1st and the 2nd coma and the 2nd coma and the end of the line 
-    int posComa1 = line.find(',',0);
-    int posComa2 = line.find(',',posComa1+1);
-    
-    std::string xlandmarkStr = line.substr(posComa1+1, posComa2-(posComa1+1));
-    std::string ylandmarkStr = line.substr(posComa2+1, line.size()-(posComa2+1));
-
-
-    // if coordinates exist, convert them into int and add them to the Tab matrix.
-    if ( xlandmarkStr.length() !=0 && ylandmarkStr.length() !=0 )
-    {
-      int xlandmark = std::stoi(xlandmarkStr);
-      int ylandmark = std::stoi(ylandmarkStr);
-
-      //Add the coordinates to a 2,1 matrix and then add this matrix to the matrix containing all the different coordinates
-      LineTab.push_back(xlandmark);
-      LineTab.push_back(ylandmark);
-
-      Tab.push_back(LineTab);
-
-      // clear LineTab
-      LineTab.pop_back();
-      LineTab.pop_back();
-    }
-
-  }
-
-  return Tab;
-
+  string cutted_slash = input.substr(0, input.size() - (('/' == input[input.size()-1])?1:0));
+  size_t slash_pos = cutted_slash.find_last_of('/');
+  return cutted_slash.substr(string::npos == slash_pos ? 0 : slash_pos+1);
 }
 
-// READ ONLY 3*3 and 4*4 Matrix
-std::vector <std::vector<float>> Read_MAT_files (std::string PATH_to_MAT, int Dim)
+int mkdir_p(const char *path)
 {
-  std::vector <std::vector<float>> Mat;
-  std::vector<float> LineMat;
-  std::string line;
-  std::ifstream myfile (PATH_to_MAT);
-  if (myfile.is_open())
-  {
-    while ( getline(myfile,line))
-      {
-        if ( Dim == 3)
-        {
-          int posSpace1 = line.find(' ',0);
-          int posSpace2 = line.find(' ',posSpace1+1);
-          
-          std::string astr = line.substr(0, posSpace1);
-          std::string bstr = line.substr(posSpace1+1, posSpace2-(posSpace1+1));
-          std::string cstr = line.substr(posSpace2+1, line.size()-(posSpace2+1));
+    /* Adapted from http://stackoverflow.com/a/2336245/119527 */
+    const size_t len = strlen(path);
+    char _path[PATH_MAX];
+    char *p; 
 
-          float a = std::stof(astr);
-          float b = std::stof(bstr);
-          float c = std::stof(cstr);
+    errno = 0;
 
-          LineMat.push_back(a);
-          LineMat.push_back(b);
-          LineMat.push_back(c);
+    /* Copy string so its mutable */
+    if (len > sizeof(_path)-1) {
+        errno = ENAMETOOLONG;
+        return -1; 
+    }   
+    strcpy(_path, path);
 
-          Mat.push_back(LineMat);
+    /* Iterate the string */
+    for (p = _path + 1; *p; p++) {
+        if (*p == '/') {
+            /* Temporarily truncate */
+            *p = '\0';
 
-          LineMat.pop_back();
-          LineMat.pop_back();
-          LineMat.pop_back();
+            if (mkdir(_path, S_IRWXU) != 0) {
+                if (errno != EEXIST)
+                    return -1; 
+            }
+
+            *p = '/';
         }
-        // useless ?? no need to change coordinates to NIFTI's ones ?
-        if ( Dim == 4)
-        {
-          int posSpace1 = line.find(' ',0);
-          int posSpace2 = line.find(' ',posSpace1+1);
-          int posSpace3 = line.find(' ',posSpace2+1);
-          
-          std::string astr = line.substr(0, posSpace1);
-          std::string bstr = line.substr(posSpace1+1, posSpace2-(posSpace1+1));
-          std::string cstr = line.substr(posSpace2+1, posSpace3-(posSpace2+1));
-          std::string dstr = line.substr(posSpace3+1, line.size()-(posSpace3+1));
+    }   
 
-          float a = std::stof(astr);
-          float b = std::stof(bstr);
-          float c = std::stof(cstr);
-          float d = std::stof(dstr);
+    if (mkdir(_path, S_IRWXU) != 0) {
+        if (errno != EEXIST)
+            return -1; 
+    }   
 
-          LineMat.push_back(a);
-          LineMat.push_back(b);
-          LineMat.push_back(c);
-          LineMat.push_back(d);
-
-          Mat.push_back(LineMat);
-
-          LineMat.pop_back();
-          LineMat.pop_back();
-          LineMat.pop_back();
-          LineMat.pop_back();
-
-        }
-      }
-    myfile.close();
-  }
-  return Mat;
+    return 0;
 }
-/*
-std::vector<TranslationUnit> Transformation(std::vector <std::vector<float>> Landmarks, std::vector< TranslationUnit > translationVector, float radius)
+
+string GetStdoutFromCommand(string cmd) 
 {
-  std::vector<std::vector<float>> NeighborsInsideCircle;
-  std::vector<float> LineNeighborInsideCircle;
-  std::vector<TranslationUnit> translationVectorLandmarks;
-  float xl; float yl; float xm; float ym;
+    string data;
+    FILE * stream;
+    const int max_buffer = 256;
+    char buffer[max_buffer];
+    cmd.append(" 2>&1");
 
-  // For each landmark
-  for (int i = 0; i < Landmarks.size(); ++i)
-  {
-    // Get landmark coordinate
-    xl = Landmarks[i][0];
-    yl = Landmarks[i][1];
-
-    // For each duo keypoints from robust_match (each element of translationVector)
-    for (int j = 0; j < translationVector.size(); ++j)
-    {
-      // Get the point in the source image
-      auto point = translationVector[j].source;
-      float xm = point.x;
-      float ym = point.y;
-
-      // compute euclidean distance with landmark
-      float xdiff = xl - xm;
-      float ydiff = yl - ym;
-      float dist = std::sqrt(std::pow(xdiff,2) + std::pow(ydiff,2));
-      
-      // keep in memory the 3 closest keypoint
-      if (dist < radius)
-      {
-        LineNeighborInsideCircle.push_back(dist);
-        LineNeighborInsideCircle.push_back(translationVector[j].x);
-        LineNeighborInsideCircle.push_back(translationVector[j].y);
-
-        NeighborsInsideCircle.push_back(LineNeighborInsideCircle);
-
-        LineNeighborInsideCircle.pop_back();
-        LineNeighborInsideCircle.pop_back();
-        LineNeighborInsideCircle.pop_back();
-      }
+    stream = popen(cmd.c_str(), "r");
+    if (stream) {
+    while (!feof(stream))
+    if (fgets(buffer, max_buffer, stream) != NULL) data.append(buffer);
+    pclose(stream);
     }
-
-    // compute the total of distances for average
-    float totalDistance = ClosestNeighbor[0][0] + ClosestNeighbor[1][0] + ClosestNeighbor[2][0];
-
-    // Not sure about this way to do weighted average !! NOT GOOD !!\
-    // USE INVERSE DISTANCE WEIGHTING
-    //float xtranslation_mean = (totalDistance - ClosestNeighbor[0][0] / totalDistance ) * ClosestNeighbor[0][1] 
-                              + (totalDistance - ClosestNeighbor[1][0] / totalDistance ) * ClosestNeighbor[1][1] 
-                              + (totalDistance - ClosestNeighbor[2][0] / totalDistance ) * ClosestNeighbor[2][1];
-    //float ytranslation_mean = (totalDistance - ClosestNeighbor[0][0] / totalDistance ) * ClosestNeighbor[0][2] 
-                              + (totalDistance - ClosestNeighbor[1][0] / totalDistance ) * ClosestNeighbor[1][2] 
-                              + (totalDistance - ClosestNeighbor[2][0] / totalDistance ) * ClosestNeighbor[2][2];
-    float xtranslation_mean = 0;
-    float ytranslation_mean = 0;
-
-    // fill translationVectorLandmarks with the coordinate of the landmarks and the vector it should follow.
-    TranslationUnit temp;
-    cv::Point_<float> sourceXY;
-    sourceXY = cv::Point_<float>(xl,yl);
-    temp.source = sourceXY;
-
-    std::cout << "Point : " << sourceXY << '\n';
-    std::cout << "Vecteur : " << xtranslation_mean << "  " << ytranslation_mean << '\n';
-
-    temp.x = xtranslation_mean;
-    temp.y = ytranslation_mean;
-    temp.Update();
-    translationVectorLandmarks.push_back(temp);
-
-    // Remove previous result in ClosestNeighbor because we'll use a new landmark
-    ClosestNeighbor.pop_back();
-    ClosestNeighbor.pop_back();
-    ClosestNeighbor.pop_back();
-  }
-
-  return translationVectorLandmarks;
-
+    return data;
 }
 
-// Apply transformation field to landmarks 
-std::vector<TranslationUnit> Transformation(std::vector <std::vector<float>> Landmarks, std::vector< TranslationUnit > translationVector)
+static void show_usage(string name)
 {
-  std::vector<std::vector<float>> ClosestNeighbor;
-  std::vector<float> LineClosestNeighbor;
-  LineClosestNeighbor = {1000,0,0}; // Dist, x, y
-  std::vector<TranslationUnit> translationVectorLandmarks;
-  float xl; float yl; float xm; float ym;
-
-  // For each landmark
-  for (int i = 0; i < Landmarks.size(); ++i)
-  {
-    // Initialize Closest neighbor with point 0,0 and distance 1000
-    ClosestNeighbor.push_back(LineClosestNeighbor);
-    ClosestNeighbor.push_back(LineClosestNeighbor);
-    ClosestNeighbor.push_back(LineClosestNeighbor);
-
-    // Get landmark coordinate
-    xl = Landmarks[i][0];
-    yl = Landmarks[i][1];
-
-    // For each duo keypoints from robust_match (each element of translationVector)
-    for (int j = 0; j < translationVector.size(); ++j)
-    {
-      // Get the point in the source image
-      auto point = translationVector[j].source;
-      float xm = point.x;
-      float ym = point.y;
-
-      // compute euclidean distance with landmark
-      float xdiff = xl - xm;
-      float ydiff = yl - ym;
-      float dist = std::sqrt(std::pow(xdiff,2) + std::pow(ydiff,2));
-
-      std::cout << "Distance " << ClosestNeighbor[0][0] << "   " << ClosestNeighbor[1][0] << "   " << ClosestNeighbor[2][0] << '\n';
-      
-      // keep in memory the 3 closest keypoint
-      if (dist < ClosestNeighbor[0][0])
-      {
-        ClosestNeighbor[2][0] = ClosestNeighbor[1][0];
-        ClosestNeighbor[2][1] = ClosestNeighbor[1][1];
-        ClosestNeighbor[2][2] = ClosestNeighbor[1][2];
-
-        ClosestNeighbor[1][0] = ClosestNeighbor[0][0];
-        ClosestNeighbor[1][1] = ClosestNeighbor[0][1];
-        ClosestNeighbor[1][2] = ClosestNeighbor[0][2];
-
-        ClosestNeighbor[0][0] = dist;
-        ClosestNeighbor[0][1] = translationVector[j].x;
-        ClosestNeighbor[0][2] = translationVector[j].y;
-      }
-      if (dist > ClosestNeighbor[0][0] && dist < ClosestNeighbor[1][0])
-      {
-        ClosestNeighbor[2][0] = ClosestNeighbor[1][0];
-        ClosestNeighbor[2][1] = ClosestNeighbor[1][1];
-        ClosestNeighbor[2][2] = ClosestNeighbor[1][2];
-
-        ClosestNeighbor[1][0] = dist;
-        ClosestNeighbor[1][1] = translationVector[j].x;
-        ClosestNeighbor[1][2] = translationVector[j].y;
-      }
-      if (dist > ClosestNeighbor[0][0] && dist > ClosestNeighbor[1][0] && dist < ClosestNeighbor[2][0])
-      {
-        ClosestNeighbor[2][0] = dist;
-        ClosestNeighbor[2][1] = translationVector[j].x;
-        ClosestNeighbor[2][2] = translationVector[j].y;
-      }
-    }
-
-    // compute the total of distances for average
-    float totalDistance = ClosestNeighbor[0][0] + ClosestNeighbor[1][0] + ClosestNeighbor[2][0];
-
-    // Not sure about this way to do weighted average !! NOT GOOD !!\
-    // USE INVERSE DISTANCE WEIGHTING
-    //float xtranslation_mean = (totalDistance - ClosestNeighbor[0][0] / totalDistance ) * ClosestNeighbor[0][1] 
-                              + (totalDistance - ClosestNeighbor[1][0] / totalDistance ) * ClosestNeighbor[1][1] 
-                              + (totalDistance - ClosestNeighbor[2][0] / totalDistance ) * ClosestNeighbor[2][1];
-    //float ytranslation_mean = (totalDistance - ClosestNeighbor[0][0] / totalDistance ) * ClosestNeighbor[0][2] 
-                              + (totalDistance - ClosestNeighbor[1][0] / totalDistance ) * ClosestNeighbor[1][2] 
-                              + (totalDistance - ClosestNeighbor[2][0] / totalDistance ) * ClosestNeighbor[2][2];
-    float xtranslation_mean = 0;
-    float ytranslation_mean = 0;
-
-    // fill translationVectorLandmarks with the coordinate of the landmarks and the vector it should follow.
-    TranslationUnit temp;
-    cv::Point_<float> sourceXY;
-    sourceXY = cv::Point_<float>(xl,yl);
-    temp.source = sourceXY;
-
-    std::cout << "Point : " << sourceXY << '\n';
-    std::cout << "Vecteur : " << xtranslation_mean << "  " << ytranslation_mean << '\n';
-
-    temp.x = xtranslation_mean;
-    temp.y = ytranslation_mean;
-    temp.Update();
-    translationVectorLandmarks.push_back(temp);
-
-    // Remove previous result in ClosestNeighbor because we'll use a new landmark
-    ClosestNeighbor.pop_back();
-    ClosestNeighbor.pop_back();
-    ClosestNeighbor.pop_back();
-  }
-
-  return translationVectorLandmarks;
-
-}
-*/
-std::vector <double> Evaluation(cv::Mat MovingImages, std::vector <std::vector<float>> MovedLandmarks, std::vector <std::vector<float>> TargetLandmark)
-{
-  std::vector <double> rTRE;
-  int H = MovingImages.size().height;
-  int W = MovingImages.size().width;
-
-
-  // compute euclidean distance normalized by image diagonal
-  for (int i=0; i<MovedLandmarks.size(); ++i)
-  {
-    double xdiff = TargetLandmark[i][0] - MovedLandmarks[i][0];
-    double ydiff = TargetLandmark[i][1] - MovedLandmarks[i][1];
-    double euclDist = std::sqrt(std::pow(xdiff,2) + std::pow(ydiff,2));
-
-    // FOR NOW just euclidean distance, because it's more meaningfull
-    //double euclDistNorm = euclDist/std::sqrt(std::pow(H,2)+std::pow(W,2));
-
-    rTRE.push_back(euclDist);
-  }
-
-  // For now return euclidean distance normalized
-  // !!! NOT FINAL CRITERIA OF EVALUATION !!!
-
-  return rTRE;
-
-  // compute median of rTRE
-  /*
-  sort(rTRE.begin(), rTRE.end());
-  if (size % 2 == 0)
-  {
-    double median_rTRE = (rTRE[size / 2 - 1] + rTRE[size / 2]) / 2;
-  }
-  else 
-  {
-    double median_rTRE = rTRE[size / 2];
-  }
-  */
-
-  // compute rank ????
-
-  //sum_rTRE = std::accumulate();
-  //mean = sum_rTRE/ size();
-
-  // Score = rTRE - mean(rank(median(rTRE)))
-  // !!!! NOT SURE OF MY UNDERSTANDING !!!! 
-  // Speak with Spyros about the ranking score to be sure 
- 
+    cerr << "Usage: " << name << " <option(s)>"
+              << "Options:\n"
+              << "\t-h,--help\t\tShow this help message\n"
+              << "\t-o,--output DESTINATION\tSpecify the destination path\n"
+              << "\t-m,--moving MOVING\tSpecify the moving image\n"
+              << "\t-f,--fixed FIXED\tSpecify the fixed image\n"
+              << endl;
 }
 
-int main(int argc, char **argv)
-{
-  if (argc != 6)
-  {
-    std::cerr << "HistoReg Usage:\n  HistoReg.exe C:/path/to/sourceImage.jpg C:/path/to/targetImage.jpg C:/path/to/outputDir C:/path/to/landmark/source C:/path/to/landmark/target\n";
-    return EXIT_FAILURE;
-  }
-
-  const std::string sourceImageFile = argv[1];
-  const std::string targetImageFile = argv[2];
-  const std::string outputDir = argv[3];
-  const std::string sourceLandmarkCSV = argv[4];
-  const std::string targetLandmarkCSV = argv[5];
-
-  if (!cbica::isDir(outputDir))
-  {
-    cbica::createDir(outputDir);
-  }
-
-  auto sourceImage = cv::imread(sourceImageFile, cv::IMREAD_COLOR);
-  auto targetImage = cv::imread(targetImageFile);
-  
-  /*
-  //std::cout << sourceImage.size() << '\n';
-
-  //int H = sourceImage.size().height;
-  //int W = sourceImage.size().width;
-
-
-  //std::vector <std::vector<float>> MovingLandmarks = Read_CSV_landmark (sourceLandmarkCSV);
-  using PixelType = itk::RGBPixel < uchar>;
-  typedef itk::Image< PixelType, 3 > ExpectedImageType;
-  using ReaderType = itk::ImageFileReader< ExpectedImageType >;
-  auto reader = ReaderType::New();
-  reader->SetFileName( sourceImageFile );
-  try
-  {
-    reader->Update();
-  }
-  catch (itk::ExceptionObject& e)
-  {
-    std::cerr << "Exception caught while reading the image '" << sourceImageFile << "':\n" << e.what() << "\n";
-    return EXIT_FAILURE;
-  }
-
-  auto sourceImage_itk = reader->GetOutput();
-
-  itk::OrientImageFilter<ImageType,ImageType>::Pointer orienter = itk::OrientImageFilter<ImageType,ImageType>::New();
-  orienter->UseImageDirectionOn();
-  orienter->SetDesiredCoordinateOrientation(itk::SpatialOrientation::ITK_COORDINATE_ORIENTATION_RIP);
-  orienter->SetInput(sourceImage_itk);
-  orienter->Update();
-  auto rval = orienter->GetOutput();
-
-  imwrite("/home/venetl/Documents/HistoReg/src/OutputHomo.png",rval);
-
-
-  
-  itk::ImageConstIteratorWithIndex<ExpectedImageType> imageIterator2 (sourceImage_itk, sourceImage_itk->GetLargestPossibleRegion());
-
-  std::cout << sourceImage_itk->GetLargestPossibleRegion().GetSize() << '\n';
-
-  for (int a=0; a < 6 ; ++a)
-  {
-    float i=MovingLandmarks[a*10][0];
-    float j=MovingLandmarks[a*10][1];
-
-    std::cout << "Point : " << i << "  " << j << '\n';
-   
-    //auto valueAtIJ = sourceImage.at<int> (j,i);
-
-    //unsigned char * valueAtIJ = sourceImage.ptr(j,i);
-
-    //auto valueAtIJ = *p;
-
-    //auto p = sourceImage.ptr(j,i);
-    //std::cout << "Channel_0: " << valueAtIJ[0] << "\n";
-    //std::cout << "Channel_1: " << valueAtIJ[1] << "\n";
-    //std::cout << "Channel_2: " << valueAtIJ[2] << "\n";
-
-    auto temp2 = sourceImage.at< cv::Vec3b >(j, i);
-    std::cout << "CV : " << temp2 << "\n";
-
-    //std::cout << valueAtIJ.size() <<'\n';
+// int img_dim(string PATH_image, int dim){
     
-    imageIterator2.SetIndex(itk::Index<3> {{i,j,0}});
-    auto valueAtIJ_ITK = imageIterator2.Get();
+// }
 
-    std::cout << "ITK : " << valueAtIJ_ITK << '\n';
-  }
-  */
-  //For point detector, uncomment from here 
+int main(int argc, char* argv[])
+{
+    // clock_t start_script;
+    // double duration;
 
-  /// https://docs.opencv.org/3.4.3/d5/d51/group__features2d__main.html
-  auto f2d = cv::xfeatures2d::SIFT::create();
-  //auto f2d = cv::xfeatures2d::SURF::create();
-  //auto f2d = cv::ORB::create();
-  //auto f2d = cv::xfeatures2d::DAISY::create();
+    // start_script = clock();
 
-  // Detect the keypoints:
-  std::vector< cv::KeyPoint > keypoints_source, keypoints_target;
-  f2d->detect(sourceImage, keypoints_source);
-  f2d->detect(targetImage, keypoints_target);
+    chrono::time_point<chrono::system_clock> start_script, end_script;
+    int duration;
+    start_script = chrono::system_clock::now();
 
-  // Calculate descriptors (feature vectors)    
-  cv::Mat descriptors_1, descriptors_2;
-  f2d->compute(sourceImage, keypoints_source, descriptors_1);
-  f2d->compute(targetImage, keypoints_target, descriptors_2);
+    cout << "Starting..." << '\n';
 
-  // Matching descriptor vectors
-  std::vector< cv::DMatch > matches;
-  std::vector<std::vector< cv::DMatch>> knnmatches;
 
-  /// https://docs.opencv.org/3.4.3/d8/d9b/group__features2d__match.html
-  cv::BFMatcher matcher;
-  //cv::FlannBasedMatcher matcher;
-  matcher.match(descriptors_1, descriptors_2, matches);
-  matcher.knnMatch(descriptors_1,descriptors_2,knnmatches,2);
-
-  /*
-  auto robust_matches = matches;
-  robust_matches.clear();
-  /// accessing points in robust_matches and making that into a translation vector
-  std::vector< TranslationUnit > translationVector;
-  for (size_t i = 0; i < matches.size(); i++)
-  {
-
-    // WRONG : 
-    //if (std::abs(matches[i].distance) < 0.6) // lowe's ratio to be changed
-    //{
-      robust_matches.push_back(matches[i]);
-      TranslationUnit temp;
-      temp.target = keypoints_target[matches[i].imgIdx];
-      temp.source = keypoints_source[matches[i].imgIdx];
-      temp.x = keypoints_target[matches[i].imgIdx].pt.x - keypoints_source[matches[i].imgIdx].pt.x;
-      temp.y = keypoints_target[matches[i].imgIdx].pt.y - keypoints_source[matches[i].imgIdx].pt.y;
-      temp.Update();
-      translationVector.push_back(temp);
-      std::cout << keypoints_target[matches[i].imgIdx].pt.x << "    " << keypoints_target[matches[i].imgIdx].pt.y << '\n';
-    //}
-  }
-  */
-  
-  std::cout << knnmatches.size() << '\n';
-  std::vector< cv::DMatch > robust_matches;
-  std::vector<cv::Point_<float>> pts_src;
-  std::vector<cv::Point_<float>> pts_trgt;
-  robust_matches.clear();
-  /// accessing points in robust_matches and making that into a translation vector
-  std::vector< TranslationUnit > translationVector;
-  for (size_t i = 0; i < knnmatches.size(); i++)
-  {
-    if (std::abs(knnmatches[i][0].distance / knnmatches[i][1].distance) < 0.8) // lowe's ratio to be changed
-    {
-      robust_matches.push_back(knnmatches[i][0]);
-
-      // test
-      int source_idx = knnmatches[i][0].queryIdx;
-      int target_idx = knnmatches[i][0].trainIdx;
-
-      auto sourceXY = keypoints_source[source_idx].pt;
-      auto targetXY = keypoints_target[target_idx].pt;
-
-      pts_src.push_back(sourceXY);
-      pts_trgt.push_back(targetXY);
-
-      TranslationUnit temp;
-      temp.source = sourceXY;
-      temp.target = targetXY;
-      temp.x = targetXY.x - sourceXY.x;
-      temp.y = targetXY.y - sourceXY.y;
-      temp.Update();
-      translationVector.push_back(temp);
-      
-      std::cout << "Match number : " << i << '\n';
-      std::cout << "Keypoint coordinates in source and target images : " << sourceXY << "    " << targetXY << '\n';
-      std::cout << "Vectors : x " << temp.x << " y " << temp.y << '\n';
-      //std::cout << knnmatches[i][0].distance << "    " << knnmatches[i][1].distance << '\n';
-      //std::cout << keypoints_target[knnmatches[i][0].imgIdx].pt.x << "    " << keypoints_target[knnmatches[i][0].imgIdx].pt.y << '\n';
+    if (argc < 3) { // We expect 4 arguments: the program name, the source path, the target path and the output path
+        show_usage(argv[0]);
+        return 1;
     }
-  }
-  std::cout << "Total robust matches : " << robust_matches.size() << '\n';
-  
-  // Test
-  /*
-  cv::Mat h = cv::findHomography(pts_src,pts_trgt);
 
-  cv::Mat im_out;
-  warpPerspective(sourceImage,im_out,h,targetImage.size());
+    // string PATH_source=argv[1];
+    // string PATH_target=argv[2];
+    // string PATH_Output_DIR=argv[3];
+    // string apply_full_res=argv[4];
 
-  imwrite("/home/venetl/Documents/HistoReg/src/OutputHomo.png",im_out);
-  */
+    // Compulsory arguments
+    string PATH_Output_DIR;
+    string PATH_source;
+    string PATH_target;
+    string PATH_landmarks;
+    //string c2d_executable = "/cbica/home/venetl/comp_space/itksnap-experimental-master-Linux-gcc64/itksnap-3.8.0-beta-20181028-Linux-gcc64/bin/c2d";
+    string c2d_executable;
 
-  // NOT WORKING FOR NOW, DUNNO WHY
+    // Optional arguments
+    string resample = "4";
+    string Kernel_Divider = "40";
+    string iteration = "5000";
+    
+    // Flags
+    int Output_provided = 0;
+    int Fixed_provided = 0;
+    int Moving_provided = 0;
+    int c2d_executable_provided = 0;
+    int Flag_Full_Resolution = 0;
+    int Flag_landmarks = 0;
 
-  imshow("Source : ", sourceImage);
+    cout << "Reading arguments..." << '\n';
 
-  /*
-  cv::Mat OutputImage;
-  const std::vector<std::vector<char>>& matchesMask=std::vector<std::vector<char> >(); 
-  drawMatches(sourceImage,keypoints_source,targetImage,keypoints_target,matches,OutputImage,cv::Scalar::all(-1),cv::Scalar::all(-1),std::vector<char>(),DrawMatchesFlags::DEFAULT);
-  
-  imshow("DetectedImage", OutputImage );
-  cv::waitKey(0);
-  */
+    for (int i=1; i<argc; i++){
+        string arg = argv[i];
+        if ((arg == "-h") || (arg == "--help")){
+            show_usage(argv[0]);
+            return 1;
+        } else {
+            if ((arg == "-o") || (arg == "--output")){
+                if (i + 1 < argc){ // Make sure we aren't at the end of argv!
+                    PATH_Output_DIR = argv[++i]; // Increment 'i' so we don't get the argument as the next argv[i].
+                    Output_provided = 1;
+                } else { // Uh-oh, there was no argument to the destination option.
+                    cerr << "--output option requires one argument." << '\n';
+                    return 1;
+                }
+            }
+            if ((arg == "-m") || (arg == "--moving")){
+                if (i + 1 < argc){ // Make sure we aren't at the end of argv!
+                    PATH_source = argv[++i]; // Increment 'i' so we don't get the argument as the next argv[i].
+                    Moving_provided = 1;
+                } else { // Uh-oh, there was no argument to the destination option.
+                    cerr << "--moving option requires one argument." << '\n';
+                    return 1;
+                }
+            }
+            if ((arg == "-f") || (arg == "--fixed")){
+                if (i + 1 < argc){ // Make sure we aren't at the end of argv!
+                    PATH_target = argv[++i]; // Increment 'i' so we don't get the argument as the next argv[i].
+                    Fixed_provided = 1;
+                } else { // Uh-oh, there was no argument to the destination option.
+                    cerr << "--target option requires one argument." << '\n';
+                    return 1;
+                }
+            }
+            if ((arg == "-F") || (arg == "--FullResolution")){
+                Flag_Full_Resolution = 1;
+            }
+            if ((arg == "-r") || (arg == "--resample")){
+                if (i + 1 < argc){ // Make sure we aren't at the end of argv!
+                    resample = argv[++i];
+                }else { // Uh-oh, there was no argument to the destination option.
+                    cerr << "--resample option requires one argument." << '\n';
+                    return 1;
+                }
+            }
+            if ((arg == "-k") || (arg == "--kernel")){
+                if (i + 1 < argc){ // Make sure we aren't at the end of argv!
+                    Kernel_Divider = argv[++i];
+                }else { // Uh-oh, there was no argument to the destination option.
+                    cerr << "--kernel option requires one argument." << '\n';
+                    return 1;
+                }
+            }
+            if ((arg == "-i") || (arg == "--iteration")){
+                if (i + 1 < argc){ // Make sure we aren't at the end of argv!
+                    iteration = argv[++i];
+                }else { // Uh-oh, there was no argument to the destination option.
+                    cerr << "--iteration option requires one argument." << '\n';
+                    return 1;
+                }
+            }
+            if ((arg == "-l") || (arg == "--landmarks")){
+                if (i + 1 < argc){ // Make sure we aren't at the end of argv!
+                    PATH_landmarks = argv[++i];
+                }else { // Uh-oh, there was no argument to the destination option.
+                    cerr << "--landmarks option requires one argument." << '\n';
+                    return 1;
+                }
+            }
+            if ((arg == "-c") || (arg == "--c2d_executable")){
+                if (i + 1 < argc){ // Make sure we aren't at the end of argv!
+                    c2d_executable = argv[++i];
+                    c2d_executable_provided = 1;
+                }else { // Uh-oh, there was no argument to the destination option.
+                    cerr << "--c2d_executable option requires one argument." << '\n';
+                    return 1;
+                }
+            }
+        }
+    }
 
-  //std::vector <std::vector<float>> MovingLandmarks = Read_CSV_landmark (sourceLandmarkCSV);
-  //std::vector<TranslationUnit> Result = Transformation(MovingLandmarks, translationVector);
-  // evaluation ?
-  /*
-  std::cout << "Resultats " << Result.size() << '\n';
-  for (int i = 0; i < Result.size(); ++i)
-  {
-    cv::Point_<float> Point;
-    float xl; float yl;
+    // Check compulsory arguments
+    if ((Output_provided == 0) || (Moving_provided == 0) || (Fixed_provided == 0) || (c2d_executable_provided == 0)){
+        cerr << "Error: Missing compulsory argument : -m, -f, -o, -c" << '\n';
+        return 1;
+    }
 
-    xl = Result[i].x;
-    yl = Result[i].y;
-    Point = Result[i].source;
+    string s1 = "6";
+    string s2 = "5";
 
-    std::cout << "Point : " << Point << "  Vecteurs : x " << xl << "  y " << yl << '\n';
+    cout << "Done." << '\n';
 
+    // Prints arguments
+    
+    // cout << PATH_source << '\n';
+    // cout << PATH_target << '\n';
+    // cout << PATH_Output_DIR << '\n';
 
+    cout << "Creating output and temporary directories..." << '\n';
 
-  }
-  */
-  // GREEDY
+    // Get name images for output folder
+    string name_source_full = basename (PATH_source.c_str());
+    string name_target_full = basename (PATH_target.c_str());
+    string delimiter = ".";
 
-  //system("./MYSCRIPT.sh ");
+    string name_source = name_source_full.substr(0,name_source_full.find(delimiter));
+    string name_target = name_target_full.substr(0,name_target_full.find(delimiter));
 
-  
-  /*
-  std::vector <std::vector<float>> MovingLandmarks = Read_CSV_landmark (sourceLandmarkCSV);
-  std::vector <std::vector<float>> TargetLandmarks = Read_CSV_landmark (targetLandmarkCSV);
+    // Create string for output folder
+    string PATH_Output = PATH_Output_DIR + string("/") + name_source + string("_to_") + name_target;
+    string PATH_Output_Temp = PATH_Output + "/tmp";
 
-  // Evaluation before registration 
+    // Create output folder
+    //mkdir_p(PATH_Output.c_str());
+    mkdir_p(PATH_Output_Temp.c_str());
 
-  std::vector <double> rTRE_before = Evaluation(sourceImage, MovingLandmarks, TargetLandmarks);
+    cout << "Done." << '\n';
 
-  // Apply Greddy registration to the landmarks
-  // Read Matrix for affine registration
-  
-  //std::string Test = sourceImageFile.substr(31);
-  //std::string Test2 = outputDir;
-  //Test2.append(Test);
-  //std::cout << Test2 << '\n';
-  
+    // TO REMOVE
+    chrono::time_point<chrono::system_clock> start_size, end_size;
+    start_size = chrono::system_clock::now();
 
-  std::vector <std::vector<float>> MatAffine = Read_MAT_files("/home/venetl/Documents/HistoReg/Output/dataset_small/lung-lesion_1/29-041-Izd2-w35-Cc10-5-les1/Affine.mat",3);
+    // Extract sizes
+    // Target
+    string Size_original_target_W;
+    string Size_original_target_H;
+    itk::ImageIOBase::Pointer m_itkImageIOBase = itk::ImageIOFactory::CreateImageIO(PATH_target.c_str(), itk::ImageIOFactory::ReadMode);
+    m_itkImageIOBase->SetFileName(PATH_target);
+    m_itkImageIOBase->ReadImageInformation();
 
-  // Read Matrix for 
-  //std::vector <std::vector<float>> XYtoNIFTI = Read_MAT_files("/home/venetl/Documents/HistoReg/Output/dataset_small/lung-lesion_1/29-041-Izd2-w35-Cc10-5-les1/XYtoNIFTI.mat",4);
+    if ( m_itkImageIOBase->GetNumberOfDimensions() > 2 ){
+        cerr << "Error : input image has more than 2 dimensions." << '\n';
+    }
+    else {
+        Size_original_target_W = to_string(m_itkImageIOBase->GetDimensions(0));
+        Size_original_target_H = to_string(m_itkImageIOBase->GetDimensions(1));
+    }
 
-  // Open NIFTI image
-  using PixelType = itk::Vector< float, 2 >;
-  typedef itk::Image< PixelType, 3 > ExpectedImageType;
-  std::string inputFileName = "/home/venetl/Documents/HistoReg/Output/dataset_small/lung-lesion_1/29-041-Izd2-w35-Cc10-5-les1/warp.nii.gz";
-  using ReaderType = itk::ImageFileReader< ExpectedImageType >;
-  auto reader = ReaderType::New();
-  reader->SetFileName( inputFileName );
-  try
-  {
-    reader->Update();
-  }
-  catch (itk::ExceptionObject& e)
-  {
-    std::cerr << "Exception caught while reading the image '" << inputFileName << "':\n" << e.what() << "\n";
-    return EXIT_FAILURE;
-  }
+    // Source
+    string Size_original_source_W;
+    string Size_original_source_H;
+    m_itkImageIOBase = itk::ImageIOFactory::CreateImageIO(PATH_source.c_str(), itk::ImageIOFactory::ReadMode);
+    m_itkImageIOBase->SetFileName(PATH_source);
+    m_itkImageIOBase->ReadImageInformation();
 
-  auto inputImage = reader->GetOutput();
+    if ( m_itkImageIOBase->GetNumberOfDimensions() > 2 ){
+        cerr << "Error : input image has more than 2 dimensions." << '\n';
+    }
+    else {
+        Size_original_source_W = to_string(m_itkImageIOBase->GetDimensions(0));
+        Size_original_source_H = to_string(m_itkImageIOBase->GetDimensions(1));
+    }
+    
+    end_size = chrono::system_clock::now();
+    duration = chrono::duration_cast<chrono::seconds> (end_size-start_size).count();
+    cout << "It took " << duration << " secondes to run." << '\n';
 
-  // display size of the image
-  std::cout << "Size NIFTI Image: " << inputImage->GetLargestPossibleRegion().GetSize() << "\n";
-  
-  // Define iterator 
-  itk::ImageConstIteratorWithIndex<ExpectedImageType> imageIterator (inputImage, inputImage->GetLargestPossibleRegion());
+    // Print sizes
+    // cout << "   Target_W : " << Size_original_target_W << '\n';
+    // cout << "   Target_H : " << Size_original_target_H << '\n';
+    // cout << "   Source_W : " << Size_original_source_W << '\n';
+    // cout << "   Source_H : " << Size_original_source_H << '\n';
 
-  // display number of landmarks
-  int NumberLandmarks = MovingLandmarks.size();
-  
-  std::cout << "Size Matrix Landmarks: " << NumberLandmarks << " " << MovingLandmarks[0].size()<< "\n";
+    // Preprocessing
+    cout << "Preprocessing..." << '\n';
 
-  // For each landmark
-  for (int i=0; i < NumberLandmarks; ++i)
-  {
-    std::cout << "Point : " << MovingLandmarks[i][0] << "   " << MovingLandmarks[i][1] << '\n';
+// std::string command = "/path/to/c2d"
+// #ifdef _WIN32
+// + ".exe"
+// #endif
+// ;
 
-    float x=MovingLandmarks[i][0];
-    float y=MovingLandmarks[i][1];
+    string Resampling_command = "-smooth-fast 6x5vox -resample " + resample + "% -spacing 1x1mm -orient LP -origin 0x0mm -o";
 
-    // apply affine registration
-    MovingLandmarks[i][0] = MatAffine[0][0]*x + MatAffine[0][1]*y + MatAffine[0][2];
-    MovingLandmarks[i][1] = MatAffine[1][0]*x + MatAffine[1][1]*y + MatAffine[1][2];
+    string PATH_small_target = PATH_Output + string("/new_small_target.nii.gz");
+    string PATH_small_source = PATH_Output + string("/new_small_source.nii.gz");
 
-    std::cout << "Point after Affine : " << MovingLandmarks[i][0] << "   " << MovingLandmarks[i][1] << '\n';
+    string command_source = c2d_executable + string(" ") + PATH_target + string(" ") + Resampling_command + string(" ") + PATH_small_target;
+    string command_target = c2d_executable + string(" ") + PATH_source + string(" ") + Resampling_command + string(" ") + PATH_small_source;
 
-    // Finding transformation vector's coordinate in the transformation field ( from the NIFTI image)
-    imageIterator.SetIndex(itk::Index<3> {{MovingLandmarks[i][0],MovingLandmarks[i][1],0}});
-    auto Val = imageIterator.Get();
-    std::cout << "Vecteur NIFTI : " << Val[0] << "   " << Val[1] << '\n';
+    cout << "   Resampling source..." << '\n';
+    system(command_source.c_str());
+    cout << "   Resampling target..." << '\n';
+    system(command_target.c_str());
 
-    // Apply the vector
-    MovingLandmarks[i][0] = MovingLandmarks[i][0] + Val[0];
-    MovingLandmarks[i][1] = MovingLandmarks[i][1] + Val[1];
+    cout << "   Padding images..." << '\n';
 
-    std::cout << "New Point after Non-rigid : " << MovingLandmarks[i][0] << "   " << MovingLandmarks[i][1] << '\n';
+    // Extract sizes
+    // Target
+    start_size = chrono::system_clock::now();
+    string Size_small_target_W;
+    string Size_small_target_H;
+    m_itkImageIOBase = itk::ImageIOFactory::CreateImageIO(PATH_small_target.c_str(), itk::ImageIOFactory::ReadMode);
+    m_itkImageIOBase->SetFileName(PATH_small_target);
+    m_itkImageIOBase->ReadImageInformation();
 
-    std::cout << "Target Landmarks : " << TargetLandmarks[i][0]  << "   " << TargetLandmarks[i][1] << '\n' << '\n';
+    if ( m_itkImageIOBase->GetNumberOfDimensions() > 2 ){
+        cerr << "Error : input image has more than 2 dimensions." << '\n';
+    }
+    else {
+        Size_small_target_W = to_string(m_itkImageIOBase->GetDimensions(0));
+        Size_small_target_H = to_string(m_itkImageIOBase->GetDimensions(1));
+    }
 
-  }
-  
-  // Evaluation after registration
-  
-  std::vector <double> rTRE_after = Evaluation(sourceImage, MovingLandmarks, TargetLandmarks);
+    // Source
+    string Size_small_source_W;
+    string Size_small_source_H;
+    m_itkImageIOBase = itk::ImageIOFactory::CreateImageIO(PATH_small_source.c_str(), itk::ImageIOFactory::ReadMode);
+    m_itkImageIOBase->SetFileName(PATH_small_source);
+    m_itkImageIOBase->ReadImageInformation();
 
-  for (int i=0; i < rTRE_before.size(); ++i)
-  {
-    std::cout << "Before : " << rTRE_before[i] << "   After : " << rTRE_after[i] << '\n';
-  }
+    if ( m_itkImageIOBase->GetNumberOfDimensions() > 2 ){
+        cerr << "Error : input image has more than 2 dimensions." << '\n';
+    }
+    else {
+        Size_small_source_W = to_string(m_itkImageIOBase->GetDimensions(0));
+        Size_small_source_H = to_string(m_itkImageIOBase->GetDimensions(1));
+    }
+    
+    end_size = chrono::system_clock::now();
+    duration = chrono::duration_cast<chrono::seconds> (end_size-start_size).count();
+    cout << "It took " << duration << " secondes to run." << '\n';
 
-  */
-  
+    // Print sizes
+    // cout << "   Small_target_W : " << Size_small_target_W << '\n';
+    // cout << "   Small_target_H : " << Size_small_target_H << '\n';
+    // cout << "   Small_source_W : " << Size_small_source_W << '\n';
+    // cout << "   Small_source_H : " << Size_small_source_H << '\n';
+    
+    // Get intensities from 4 cornees
+    // Computes size kernel
+    int kernel_W = stoi(Size_small_source_W) / stoi(Kernel_Divider);
+    int kernel_H = stoi(Size_small_source_H) / stoi(Kernel_Divider);
 
-/*
-  // TEST FOR TOYEXAMPLES //
-  //std::vector <std::vector<float>> MovingLandmarks = Read_CSV_landmark ("");
-  //std::vector <std::vector<float>> TargetLandmarks = Read_CSV_landmark (targetLandmarkCSV);
-
-  // Evaluation before registration 
-
-  std::vector <double> rTRE_before = Evaluation(sourceImage, MovingLandmarks, TargetLandmarks);
-
-
-
-  std::vector <std::vector<float>> MatAffine = Read_MAT_files("/home/venetl/Documents/HistoReg/Output/dataset_small/lung-lesion_1/29-041-Izd2-w35-Cc10-5-les1/Affine.mat",3);
-
-  // Read Matrix for 
-  //std::vector <std::vector<float>> XYtoNIFTI = Read_MAT_files("/home/venetl/Documents/HistoReg/Output/dataset_small/lung-lesion_1/29-041-Izd2-w35-Cc10-5-les1/XYtoNIFTI.mat",4);
-
-  // Open NIFTI image
-  using PixelType = itk::Vector< float, 2 >;
-  typedef itk::Image< PixelType, 3 > ExpectedImageType;
-  std::string inputFileName = "/home/venetl/Documents/HistoReg/Output/dataset_small/lung-lesion_1/29-041-Izd2-w35-Cc10-5-les1/warp.nii.gz";
-  using ReaderType = itk::ImageFileReader< ExpectedImageType >;
-  auto reader = ReaderType::New();
-  reader->SetFileName( inputFileName );
-  try
-  {
-    reader->Update();
-  }
-  catch (itk::ExceptionObject& e)
-  {
-    std::cerr << "Exception caught while reading the image '" << inputFileName << "':\n" << e.what() << "\n";
-    return EXIT_FAILURE;
-  }
-
-  auto inputImage = reader->GetOutput();
-
-  // display size of the image
-  std::cout << "Size NIFTI Image: " << inputImage->GetLargestPossibleRegion().GetSize() << "\n";
-  
-  // Define iterator 
-  itk::ImageConstIteratorWithIndex<ExpectedImageType> imageIterator (inputImage, inputImage->GetLargestPossibleRegion());
-
-  float x=MovingLandmarks[i][0];
-  float y=MovingLandmarks[i][1];
-  
-  std::cout << "Point : " << MovingLandmarks[i][0] << "   " << MovingLandmarks[i][1] << '\n';
-
-
-
-  // apply affine registration
-  MovingLandmarks[i][0] = MatAffine[0][0]*x + MatAffine[0][1]*y + MatAffine[0][2];
-  MovingLandmarks[i][1] = MatAffine[1][0]*x + MatAffine[1][1]*y + MatAffine[1][2];
-
-  std::cout << "Point after Affine : " << MovingLandmarks[i][0] << "   " << MovingLandmarks[i][1] << '\n';
-
-  // Finding transformation vector's coordinate in the transformation field ( from the NIFTI image)
-  imageIterator.SetIndex(itk::Index<3> {{MovingLandmarks[i][0],MovingLandmarks[i][1],0}});
-  auto Val = imageIterator.Get();
-  std::cout << "Vecteur NIFTI : " << Val[0] << "   " << Val[1] << '\n';
-
-
-  // Apply the vector
-  MovingLandmarks[i][0] = MovingLandmarks[i][0] + Val[0];
-  MovingLandmarks[i][1] = MovingLandmarks[i][1] + Val[1];
-
-  std::cout << "New Point after Non-rigid : " << MovingLandmarks[i][0] << "   " << MovingLandmarks[i][1] << '\n';
-
-  std::cout << "Target Landmarks : " << TargetLandmarks[i][0]  << "   " << TargetLandmarks[i][1] << '\n' << '\n';
-*/
-  
-  
-  // Evaluation after registration
-  /*
-  std::vector <double> rTRE_after = Evaluation(sourceImage, MovingLandmarks, TargetLandmarks);
-
-  for (int i=0; i < rTRE_before.size(); ++i)
-  {
-    std::cout << "Before : " << rTRE_before[i] << "   After : " << rTRE_after[i] << '\n';
-  }
-  */
-
-  /*
-  // Read Data from a Matrix
-  std::cout << XYtoNIFTI.size() << '\n';
-  std::cout << XYtoNIFTI[0].size() << '\n';
-  int j;
-  for ( int i =0; i < XYtoNIFTI.size(); ++i)
-  {
-    for (j=0; j < XYtoNIFTI[0].size(); ++j)
+    // Makes the kernel a square
+    int kernel = kernel_H; 
+    if ( kernel_H < kernel_W )
     {
-      std::cout << XYtoNIFTI[i][j] << "    ";
-      if (j == XYtoNIFTI[0].size()-1)
-      {
-        std::cout << std::endl;
-      }
-    } 
-  }
-  */
-  
-  return EXIT_SUCCESS;
+        kernel = kernel_W;
+    }
+
+    // Create the command to get the intensites of the corners
+    int Size_W_minus_kernel_target = stoi(Size_small_target_W) - kernel;
+    int Size_H_minus_kernel_target = stoi(Size_small_target_H) - kernel;
+
+    string Four_corners_command = c2d_executable + string(" ") + PATH_small_target + string(" -dup -cmv -popas Y -popas X -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c00 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c01 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c11 -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c10 -push c00 -push c01 -push c11 -push c10 -add -add -add -lstat | grep \" 1 \"");
+
+    string stats_target = GetStdoutFromCommand(Four_corners_command);
+
+    // Replace multiple consecutive space in the string by only one
+    string::iterator new_end = unique(stats_target.begin(), stats_target.end(), BothAreSpaces);
+    stats_target.erase(new_end, stats_target.end());
+
+    //Extract meand and std
+    delimiter = " ";
+    stats_target.erase(0,stats_target.find(delimiter) + delimiter.length());
+    stats_target.erase(0,stats_target.find(delimiter) + delimiter.length());
+    string mean_target = stats_target.substr(0,stats_target.find(delimiter));
+    stats_target.erase(0,stats_target.find(delimiter) + delimiter.length());
+    string std_target = stats_target.substr(0,stats_target.find(delimiter));
+
+    // Same with source
+    int Size_W_minus_kernel_source = stoi(Size_small_source_W) - kernel;
+    int Size_H_minus_kernel_source = stoi(Size_small_source_H) - kernel;
+
+    Four_corners_command = c2d_executable + string(" ") + PATH_small_source + string(" -dup -cmv -popas Y -popas X -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c00 -push X -thresh ") + to_string(Size_W_minus_kernel_source) + string(" ") + Size_small_source_W + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c01 -push X -thresh ") + to_string(Size_W_minus_kernel_source) + string(" ") + Size_small_source_W + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_source) + string(" ") + Size_small_source_H + string(" 1 0 -times -popas c11 -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_source) + string(" ") + Size_small_source_H + string(" 1 0 -times -popas c10 -push c00 -push c01 -push c11 -push c10 -add -add -add -lstat | grep \" 1 \"");
+
+    string stats_source = GetStdoutFromCommand(Four_corners_command);
+
+    // Replace multiple consecutive space by only one
+    new_end = unique(stats_source.begin(), stats_source.end(), BothAreSpaces);
+    stats_source.erase(new_end, stats_source.end());
+
+    //Extract meand and std
+    delimiter = " ";
+    stats_source.erase(0,stats_source.find(delimiter) + delimiter.length());
+    stats_source.erase(0,stats_source.find(delimiter) + delimiter.length());
+    string mean_source = stats_source.substr(0,stats_source.find(delimiter));
+    stats_source.erase(0,stats_source.find(delimiter) + delimiter.length());
+    string std_source = stats_source.substr(0,stats_source.find(delimiter));
+
+    // Compute four kernel
+    int four_kernel = 4*kernel;
+
+    string New_size_H = Size_small_target_H;
+    string New_size_W = Size_small_target_W;
+
+    string PATH_small_target_padded = PATH_Output + string("/new_small_target_padded.nii.gz");
+    string PATH_small_source_padded = PATH_Output + string("/new_small_source_padded.nii.gz");
+
+    if ( Size_small_source_H != Size_small_target_H || Size_small_source_W != Size_small_target_W )
+    {
+        //cout << "   Modifying sizes..." << '\n';
+        if ( Size_small_target_W < Size_small_source_W )
+        {
+            New_size_W = Size_small_source_W;
+        }
+        if ( Size_small_target_H < Size_small_source_H )
+        {
+            New_size_H = Size_small_source_H;
+        }
+
+        //cout << "   New size is : " << New_size_W << "x" << New_size_H << '\n';
+
+        string command_resize_target = c2d_executable + string(" ") + PATH_small_target + string(" -pad-to ") + New_size_W + string("x") + New_size_H + string(" 0 -o ") + PATH_small_target_padded;
+        string command_resize_source = c2d_executable + string(" ") + PATH_small_source + string(" -pad-to ") + New_size_W + string("x") + New_size_H + string(" 0 -o ") + PATH_small_source_padded;
+      
+        //cout << "   Resizing target..." << '\n';
+        system(command_resize_target.c_str());
+        //cout << "   Resizing source..." << '\n';
+        system(command_resize_source.c_str());
+    }
+    else
+    {
+        // !!! DOESN'T WORK IF I NEED ORIGINAL IMAGES BEFORE PADDING
+        PATH_small_target_padded = PATH_small_target;
+        PATH_small_source_padded = PATH_small_source;
+    }
+
+    // Pad with good intensity
+    // Target
+    string PATH_mask_target = PATH_Output_Temp + string("/mask_target.nii.gz");
+    string command = c2d_executable + string(" ") + PATH_small_target_padded + string(" -thresh 1 inf 1 0 -pad ") + to_string(four_kernel) + string("x") + to_string(four_kernel) + string(" ") + to_string(four_kernel) + string("x") + to_string(four_kernel) + string(" 0 -o ") + PATH_mask_target;
+    system(command.c_str());
+
+    command = c2d_executable + string(" ") + PATH_mask_target + string(" -replace 0 1 1 0 -popas invmask ") + PATH_mask_target + string(" -replace 0 1 1 1 -scale ") + mean_target + string(" -noise-gaussian ") + std_target + string(" -push invmask -times -o ") + PATH_mask_target;
+    system(command.c_str());
+
+    command = c2d_executable + string(" ") + PATH_small_target_padded + string(" -pad ") + to_string(four_kernel) + string("x") + to_string(four_kernel) + string(" ") + to_string(four_kernel) + string("x") + to_string(four_kernel) + string(" 0 -o ") + PATH_small_target_padded;
+    system(command.c_str());
+
+    command = c2d_executable + string(" ") + PATH_mask_target + string(" ") + PATH_small_target_padded + string(" -add -o ") + PATH_small_target_padded;
+    system(command.c_str());
+
+    cout << "   Target done." << '\n';
+
+
+    // Source
+    string PATH_mask_source = PATH_Output_Temp + string("/mask_source.nii.gz");
+    command = c2d_executable + string(" ") + PATH_small_source_padded + string(" -thresh 1 inf 1 0 -pad ") + to_string(four_kernel) + string("x") + to_string(four_kernel) + string(" ") + to_string(four_kernel) + string("x") + to_string(four_kernel) + string(" 0 -o ") + PATH_mask_source;
+    system(command.c_str());
+
+    command = c2d_executable + " " + PATH_mask_source + string(" -replace 0 1 1 0 -popas invmask ") + PATH_mask_source + string(" -replace 0 1 1 1 -scale ") + mean_source + string(" -noise-gaussian ") + std_source + string(" -push invmask -times -o ") + PATH_mask_source;
+    system(command.c_str());
+
+    command = c2d_executable + " " + PATH_small_source_padded + string(" -pad ") + to_string(four_kernel) + string("x") + to_string(four_kernel) + string(" ") + to_string(four_kernel) + string("x") + to_string(four_kernel) + string(" 0 -o ") + PATH_small_source_padded;
+    system(command.c_str());
+
+    command = c2d_executable + " " + PATH_mask_source + string(" ") + PATH_small_source_padded + string(" -add -o ") + PATH_small_source_padded;
+    system(command.c_str());
+
+    cout << "   Source done." << '\n';
+
+    // Extract sizes
+    start_size = chrono::system_clock::now();
+    // Target
+    string Size_small_target_padded_W;
+    string Size_small_target_padded_H;
+    m_itkImageIOBase = itk::ImageIOFactory::CreateImageIO(PATH_small_target_padded.c_str(), itk::ImageIOFactory::ReadMode);
+    m_itkImageIOBase->SetFileName(PATH_small_target_padded);
+    m_itkImageIOBase->ReadImageInformation();
+
+    if ( m_itkImageIOBase->GetNumberOfDimensions() > 2 ){
+        cerr << "Error : input image has more than 2 dimensions." << '\n';
+    }
+    else {
+        Size_small_target_padded_W = to_string(m_itkImageIOBase->GetDimensions(0));
+        Size_small_target_padded_H = to_string(m_itkImageIOBase->GetDimensions(1));
+    }
+
+    end_size = chrono::system_clock::now();
+    duration = chrono::duration_cast<chrono::seconds> (end_size-start_size).count();
+    cout << "It took " << duration << " secondes to run." << '\n';
+
+    // // Print sizes
+    // cout << "   Small_target_W : " << Size_small_target_padded_W << '\n';
+    // cout << "   Small_target_H : " << Size_small_target_padded_H << '\n';
+
+    cout << "Registration..." << '\n';
+    cout << "   Computing affine..." << '\n';
+
+    // Registration
+    // Affine
+    string greedy_executable = "/cbica/home/venetl/comp_space/Greedy/bin/greedy";
+    int offset = (stoi(Size_small_target_H) + four_kernel) / 10;
+    string PATH_small_affine = PATH_Output + string("/small_Affine.mat");
+    string command_affine = greedy_executable + " -d 2 -a -search " + iteration + " 180 " + to_string(offset) + " -m NCC " + to_string(kernel) + "x" + to_string(kernel) + " -i " + PATH_small_target_padded + " " + PATH_small_source_padded + " -o " + PATH_small_affine + " -gm-trim " + to_string(kernel) + "x" + to_string(kernel) + " -n 150x50x10 -ia-image-centers";
+    system(command_affine.c_str());
+
+    cout << "   Computing Defformable..." << '\n';
+    // Deformable
+    string PATH_small_warp = PATH_Output + string("/small_warp.nii.gz");
+    string PATH_small_inv_warp = PATH_Output + string("/small_inv_warp.nii.gz");
+    string command_defformable = greedy_executable + " -d 2 -m NCC " + to_string(kernel) + "x" + to_string(kernel) + " -i " + PATH_small_target_padded + " " + PATH_small_source_padded + " -it " + PATH_small_affine + " -o " + PATH_small_warp + " -oinv " + PATH_small_inv_warp + " -n 150x50x10 -s " + s1 + "vox" + " " + s2 + "vox"; 
+    system(command_defformable.c_str());
+    
+    cout << "   Applying registration to small grayscale images..." << '\n';
+    // Apply to small images
+    string PATH_small_registered_image = PATH_Output + string("/small_registeredImage.nii.gz");
+    string command_reslice_small = greedy_executable + " -d 2 -rf " + PATH_small_target_padded + " -rm " + PATH_small_source_padded + " " + PATH_small_registered_image + " -r " + PATH_small_warp + " " + PATH_small_affine;
+    system(command_reslice_small.c_str());
+    
+    cout << "   Adaptating registration mectrics to non-padded full resolution RGB images..." << '\n';
+    // Compute metrics for full resolution images
+    // Affine
+    ifstream smallAffFile;
+    string STRING;
+    int factor = 100/stoi(resample);
+    long double my_var[9];
+    string test;
+    delimiter = " ";
+    int i = 0;
+
+    // Read small affine
+    smallAffFile.open (PATH_small_affine);
+    while(!smallAffFile.eof())
+    {
+        getline(smallAffFile,STRING);
+
+        stringstream(STRING.substr(0,STRING.find(delimiter))) >> my_var[i];
+        STRING.erase(0,STRING.find(delimiter) + delimiter.length());
+        i++;
+
+        stringstream(STRING.substr(0,STRING.find(delimiter))) >> my_var[i];
+        STRING.erase(0,STRING.find(delimiter) + delimiter.length());
+        i++;
+
+        stringstream(STRING.substr(0,STRING.find(delimiter))) >> my_var[i];
+        STRING.erase(0,STRING.find(delimiter) + delimiter.length());
+        i++;
+    }
+    smallAffFile.close();
+
+    // Modify translation vector
+    long double new_val_1 = my_var[2] * factor;
+    long double new_val_2 = my_var[5] * factor;
+
+    // Write new matrix adapted to full resolution images
+    string PATH_affine = PATH_Output + "/Affine.mat";
+    ofstream AffineFile;
+    AffineFile.open(PATH_affine);
+    AffineFile << to_string(my_var[0]) + " " + to_string(my_var[1]) + " " + to_string(new_val_1) + '\n' + to_string(my_var[3]) + " " + to_string(my_var[4]) + " " + to_string(new_val_2) + '\n' + to_string(my_var[6]) + to_string(my_var[7]) + " " + to_string(my_var[8]);
+    AffineFile.close();
+
+    cout << "   Affine done." << '\n';
+
+    // Warp 
+    string PATH_mask_no_pad = PATH_Output_Temp + "/mask_no_pad.nii.gz";
+    command = c2d_executable + " -background 1 -create " + Size_small_target_W + "x" + Size_small_target_H + " 1x1mm -orient LP -o " + PATH_mask_no_pad;
+    system(command.c_str());
+
+    string PATH_mask_padded = PATH_Output_Temp + "/mask_padded.nii.gz";
+    command = c2d_executable + " " + PATH_mask_no_pad + " -pad-to " + Size_small_target_padded_W + "x" + Size_small_target_padded_H + " 0 -o " + PATH_mask_padded;
+    system(command.c_str());
+
+    command = c2d_executable + " " + PATH_mask_padded + " -origin 0x0mm -o " + PATH_mask_padded;
+    system(command.c_str());
+
+    command = c2d_executable + " -mcs " + PATH_small_warp + " -origin 0x0mm -omc " +  PATH_small_warp;
+    system(command.c_str());
+
+    string PATH_small_warp_no_pad = PATH_Output_Temp + "/small_warp_no_pad.nii.gz";
+    command = c2d_executable + " -mcs " + PATH_mask_padded + " -popas mask -mcs " + PATH_small_warp + " -foreach -push mask -times -endfor -omc " + PATH_small_warp_no_pad;
+    system(command.c_str());
+
+    string PATH_small_warp_no_pad_trim = PATH_Output_Temp + "/small_warp_no_pad_trim.nii.gz";
+    command = c2d_executable + " -mcs " + PATH_small_warp_no_pad + " -foreach -trim 0vox -endfor -omc " + PATH_small_warp_no_pad_trim;
+    system(command.c_str());
+
+    string PATH_big_warp = PATH_Output + "/big_warp.nii.gz";
+    command = c2d_executable + " -mcs " + PATH_small_warp_no_pad_trim + " -foreach -resample " + Size_original_target_W + "x" + Size_original_target_H + " -scale " + to_string(factor) + " -spacing 1x1mm -origin 0x0mm -endfor -omc " + PATH_big_warp;
+    system(command.c_str());
+
+    cout << "   Warp done." << '\n';
+
+    if ( Flag_landmarks == 1 ){
+        cout << "   Apply transformation to landmarks..." << '\n';
+        cout << "UNFINISHED YET" << '\n';
+        cout << "   Done." << '\n';
+    }
+
+    if ( Flag_Full_Resolution == 1){
+        // Apply full res
+        // Convert source and target to niftis with good orientation, pixel spacing ,origin ..
+        cout << "   Apply registration to full resolution RGB images." << '\n';
+        cout << "   Adapting source..." << '\n';
+
+        string PATH_new_source = PATH_Output_Temp + "/new_source.nii.gz";
+        command = c2d_executable + " -mcs " + PATH_source + " -foreach -orient LP -spacing 1x1mm -origin 0x0mm -endfor -omc " + PATH_new_source;
+        system(command.c_str());
+        cout << "   Done." << '\n';
+
+        cout << "   Adapting target..." << '\n';
+        string PATH_new_target = PATH_Output_Temp + "/new_target.nii.gz";
+        command = c2d_executable + " -mcs " + PATH_target + " -foreach -orient LP -spacing 1x1mm -origin 0x0mm -endfor -omc " + PATH_new_target;
+        system(command.c_str());
+        cout << "   Done." << '\n';
+
+        cout << "   Applying registration..." << '\n';
+        string PATH_registered_image = PATH_Output + "/registeredImage.nii.gz";
+        command = greedy_executable + " -d 2 -rf " + PATH_new_target + " -rm " + PATH_new_source + " " + PATH_registered_image + " -r " + PATH_big_warp + " " + PATH_affine;
+        system(command.c_str());
+        cout << "   Done." << '\n';
+    }
+
+    cout << "Program finished." << '\n';
+
+    // clock_t end_script = clock();
+    // duration = ( end_script - start_script ) / (float) CLOCKS_PER_SEC;
+
+    end_script = chrono::system_clock::now();
+    duration = chrono::duration_cast<chrono::seconds> (end_script-start_script).count();
+    cout << "It took " << duration << " secondes to run." << '\n';
+
+	return EXIT_SUCCESS;
 }
