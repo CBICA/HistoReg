@@ -224,9 +224,9 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-	#ifdef _WIN32
-	c2d_executable = c2d_executable + ".exe";
-	#endif
+	// #ifdef _WIN32
+	// c2d_executable = c2d_executable + ".exe";
+	// #endif
 
     string s1 = "6";
     string s2 = "5";
