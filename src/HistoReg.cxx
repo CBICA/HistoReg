@@ -6,6 +6,10 @@
 //#include <string>
 // #include <stdlib.h>
 
+#ifdef WIN32
+	#include <direct.h>
+#endif
+
 #include <chrono>
 
 #include "itkImageIOBase.h"
@@ -26,44 +30,24 @@ string basename(string const& input)
   return cutted_slash.substr(string::npos == slash_pos ? 0 : slash_pos+1);
 }
 
-int mkdir_p(const char *path)
+bool createDir(const std::string &dir_name)
 {
-    /* Adapted from http://stackoverflow.com/a/2336245/119527 */
-    const size_t len = strlen(path);
-    char _path[PATH_MAX];
-    char *p; 
-
-    errno = 0;
-
-    /* Copy string so its mutable */
-    if (len > sizeof(_path)-1) {
-        errno = ENAMETOOLONG;
-        return -1; 
-    }   
-    strcpy(_path, path);
-
-    /* Iterate the string */
-    for (p = _path + 1; *p; p++) {
-        if (*p == '/') {
-            /* Temporarily truncate */
-            *p = '\0';
-
-            if (mkdir(_path, S_IRWXU) != 0) {
-                if (errno != EEXIST)
-                    return -1; 
-            }
-
-            *p = '/';
-        }
-    }   
-
-    if (mkdir(_path, S_IRWXU) != 0) {
-        if (errno != EEXIST)
-            return -1; 
-    }   
-
-    return 0;
+	//! Pure c++ based directory creation
+#if defined(_WIN32)
+	DWORD ftyp = GetFileAttributesA(dir_name.c_str()); // check if directory exists or not
+	if (ftyp == INVALID_FILE_ATTRIBUTES)
+		_mkdir(dir_name.c_str());
+	return true;
+#else
+	DIR *pDir;
+	pDir = opendir(dir_name.c_str()); // check if directory exists or not
+	if (pDir == NULL)
+		mkdir(dir_name.c_str(), 0777);
+	return true;
+#endif
+	return false;
 }
+
 
 string GetStdoutFromCommand(string cmd) 
 {
@@ -73,13 +57,23 @@ string GetStdoutFromCommand(string cmd)
     char buffer[max_buffer];
     cmd.append(" 2>&1");
 
-    stream = popen(cmd.c_str(), "r");
-    if (stream) {
-    while (!feof(stream))
-    if (fgets(buffer, max_buffer, stream) != NULL) data.append(buffer);
-    pclose(stream);
-    }
-    return data;
+	#ifdef WIN32
+		stream = _popen(cmd.c_str(), "r");
+		if (stream) {
+		while (!feof(stream))
+		if (fgets(buffer, max_buffer, stream) != NULL) data.append(buffer);
+		_pclose(stream);
+		}
+		return data;
+	#else
+		stream = popen(cmd.c_str(), "r");
+		if (stream) {
+			while (!feof(stream))
+				if (fgets(buffer, max_buffer, stream) != NULL) data.append(buffer);
+			pclose(stream);
+	}
+		return data;
+	#endif
 }
 
 static void show_usage(string name)
@@ -219,6 +213,10 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+	#ifdef _WIN32
+	c2d_executable = c2d_executable + ".exe";
+	#endif
+
     string s1 = "6";
     string s2 = "5";
 
@@ -245,8 +243,8 @@ int main(int argc, char* argv[])
     string PATH_Output_Temp = PATH_Output + "/tmp";
 
     // Create output folder
-    //mkdir_p(PATH_Output.c_str());
-    mkdir_p(PATH_Output_Temp.c_str());
+    //createDir(PATH_Output.c_str());
+    createDir(PATH_Output_Temp.c_str());
 
     cout << "Done." << '\n';
 
@@ -297,12 +295,6 @@ int main(int argc, char* argv[])
 
     // Preprocessing
     cout << "Preprocessing..." << '\n';
-
-// std::string command = "/path/to/c2d"
-// #ifdef _WIN32
-// + ".exe"
-// #endif
-// ;
 
     string Resampling_command = "-smooth-fast 6x5vox -resample " + resample + "% -spacing 1x1mm -orient LP -origin 0x0mm -o";
 
