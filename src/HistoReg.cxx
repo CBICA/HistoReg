@@ -25,9 +25,15 @@ bool BothAreSpaces(char lhs, char rhs) { return (lhs == rhs) && (lhs == ' '); }
 
 string basename(string const& input)
 {
-  string cutted_slash = input.substr(0, input.size() - (('/' == input[input.size()-1])?1:0));
-  size_t slash_pos = cutted_slash.find_last_of('/');
-  return cutted_slash.substr(string::npos == slash_pos ? 0 : slash_pos+1);
+#ifdef _WIN32
+	string cutted_slash = input.substr(0, input.size() - (( '\\' == input[input.size() - 1]) ? 1 : 0));
+	size_t slash_pos = cutted_slash.find_last_of( '\\' );
+	return cutted_slash.substr(string::npos == slash_pos ? 0 : slash_pos + 1);
+#else
+	string cutted_slash = input.substr(0, input.size() - (('/' == input[input.size() - 1]) ? 1 : 0));
+	size_t slash_pos = cutted_slash.find_last_of('/');
+	return cutted_slash.substr(string::npos == slash_pos ? 0 : slash_pos + 1);
+#endif // _WIN32
 }
 
 bool createDir(const std::string &dir_name)
@@ -224,9 +230,9 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-	// #ifdef _WIN32
-	// c2d_executable = c2d_executable + ".exe";
-	// #endif
+	//#ifdef _WIN32
+	//c2d_executable = c2d_executable + ".exe";
+	//#endif
 
     string s1 = "6";
     string s2 = "5";
@@ -254,16 +260,11 @@ int main(int argc, char* argv[])
     string PATH_Output_Temp = PATH_Output + "/tmp";
 
     // Create output folder
+	createDir(PATH_Output_DIR.c_str());
     createDir(PATH_Output.c_str());
     createDir(PATH_Output_Temp.c_str());
-
+	
     cout << "Done." << '\n';
-
-	return 1;
-
-    // TO REMOVE
-    chrono::time_point<chrono::system_clock> start_size, end_size;
-    start_size = chrono::system_clock::now();
 
     // Extract sizes
     // Target
@@ -295,10 +296,6 @@ int main(int argc, char* argv[])
         Size_original_source_W = to_string(m_itkImageIOBase->GetDimensions(0));
         Size_original_source_H = to_string(m_itkImageIOBase->GetDimensions(1));
     }
-    
-    end_size = chrono::system_clock::now();
-    duration = chrono::duration_cast<chrono::seconds> (end_size-start_size).count();
-    cout << "It took " << duration << " secondes to run." << '\n';
 
     // Print sizes
     // cout << "   Target_W : " << Size_original_target_W << '\n';
@@ -326,7 +323,6 @@ int main(int argc, char* argv[])
 
     // Extract sizes
     // Target
-    start_size = chrono::system_clock::now();
     string Size_small_target_W;
     string Size_small_target_H;
     m_itkImageIOBase = itk::ImageIOFactory::CreateImageIO(PATH_small_target.c_str(), itk::ImageIOFactory::ReadMode);
@@ -356,10 +352,6 @@ int main(int argc, char* argv[])
         Size_small_source_H = to_string(m_itkImageIOBase->GetDimensions(1));
     }
     
-    end_size = chrono::system_clock::now();
-    duration = chrono::duration_cast<chrono::seconds> (end_size-start_size).count();
-    cout << "It took " << duration << " secondes to run." << '\n';
-    
     // Print sizes
     // cout << "   Small_target_W : " << Size_small_target_W << '\n';
     // cout << "   Small_target_H : " << Size_small_target_H << '\n';
@@ -382,9 +374,22 @@ int main(int argc, char* argv[])
     int Size_W_minus_kernel_target = stoi(Size_small_target_W) - kernel;
     int Size_H_minus_kernel_target = stoi(Size_small_target_H) - kernel;
 
-    string Four_corners_command = c2d_executable + string(" ") + PATH_small_target + string(" -dup -cmv -popas Y -popas X -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c00 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c01 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c11 -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c10 -push c00 -push c01 -push c11 -push c10 -add -add -add -lstat | grep \" 1 \"");
+	string grep;
+#ifdef WIN32
+	grep = " | findstr /C:\" 1 \"";
+#else
+	grep = " | grep \" 1 \"";
+#endif
+
+    // DEBUG
+	//string Four_corners_command = c2d_executable + string(" ") + PATH_small_target + string(" -dup -cmv -popas Y -popas X -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c00 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c01 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c11 -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c10 -push c00 -push c01 -push c11 -push c10 -add -add -add -lstat | grep \" 1 \"");
+	string Four_corners_command = c2d_executable + string(" ") + PATH_small_target + string(" -dup -cmv -popas Y -popas X -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c00 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c01 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c11 -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c10 -push c00 -push c01 -push c11 -push c10 -add -add -add -lstat" + grep);
 
     string stats_target = GetStdoutFromCommand(Four_corners_command);
+
+	// DEBUG
+	cout << Four_corners_command << '\n';
+	cout << stats_target << '\n';
 
     // Replace multiple consecutive space in the string by only one
     string::iterator new_end = unique(stats_target.begin(), stats_target.end(), BothAreSpaces);
@@ -402,9 +407,9 @@ int main(int argc, char* argv[])
     int Size_W_minus_kernel_source = stoi(Size_small_source_W) - kernel;
     int Size_H_minus_kernel_source = stoi(Size_small_source_H) - kernel;
 
-    Four_corners_command = c2d_executable + string(" ") + PATH_small_source + string(" -dup -cmv -popas Y -popas X -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c00 -push X -thresh ") + to_string(Size_W_minus_kernel_source) + string(" ") + Size_small_source_W + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c01 -push X -thresh ") + to_string(Size_W_minus_kernel_source) + string(" ") + Size_small_source_W + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_source) + string(" ") + Size_small_source_H + string(" 1 0 -times -popas c11 -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_source) + string(" ") + Size_small_source_H + string(" 1 0 -times -popas c10 -push c00 -push c01 -push c11 -push c10 -add -add -add -lstat | grep \" 1 \"");
-
-    string stats_source = GetStdoutFromCommand(Four_corners_command);
+    Four_corners_command = c2d_executable + string(" ") + PATH_small_source + string(" -dup -cmv -popas Y -popas X -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c00 -push X -thresh ") + to_string(Size_W_minus_kernel_source) + string(" ") + Size_small_source_W + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c01 -push X -thresh ") + to_string(Size_W_minus_kernel_source) + string(" ") + Size_small_source_W + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_source) + string(" ") + Size_small_source_H + string(" 1 0 -times -popas c11 -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_source) + string(" ") + Size_small_source_H + string(" 1 0 -times -popas c10 -push c00 -push c01 -push c11 -push c10 -add -add -add -lstat" + grep);
+	
+	string stats_source = GetStdoutFromCommand(Four_corners_command);
 
     // Replace multiple consecutive space by only one
     new_end = unique(stats_source.begin(), stats_source.end(), BothAreSpaces);
@@ -491,7 +496,6 @@ int main(int argc, char* argv[])
     cout << "   Source done." << '\n';
 
     // Extract sizes
-    start_size = chrono::system_clock::now();
     // Target
     string Size_small_target_padded_W;
     string Size_small_target_padded_H;
@@ -506,10 +510,6 @@ int main(int argc, char* argv[])
         Size_small_target_padded_W = to_string(m_itkImageIOBase->GetDimensions(0));
         Size_small_target_padded_H = to_string(m_itkImageIOBase->GetDimensions(1));
     }
-
-    end_size = chrono::system_clock::now();
-    duration = chrono::duration_cast<chrono::seconds> (end_size-start_size).count();
-    cout << "It took " << duration << " secondes to run." << '\n';
 
     // // Print sizes
     // cout << "   Small_target_W : " << Size_small_target_padded_W << '\n';
