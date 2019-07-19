@@ -10,6 +10,7 @@
 	#include <direct.h>
 #endif
 
+#include <sys/dir.h>
 #include <chrono>
 
 #include "itkImageIOBase.h"
@@ -87,9 +88,20 @@ static void show_usage(string name)
     cerr << "Usage: " << name << " <option(s)>"
               << "Options:\n"
               << "\t-h,--help\t\tShow this help message\n"
-              << "\t-o,--output DESTINATION\tSpecify the destination path\n"
-              << "\t-m,--moving MOVING\tSpecify the moving image\n"
-              << "\t-f,--fixed FIXED\tSpecify the fixed image\n"
+              << '\n'
+              << "Compulsory arguments:\n"
+              << "\t-m,--moving [PATH to file]\tPATH to the moving image\n"
+              << "\t-f,--fixed [PATH to file]\tPATH to the fixed image\n"
+              << "\t-c,--c2d_executable [PATH to file]\tPath to c2d executable\n"
+              << "\t-g,--greedy_executable [PATH to file]\tPath to greedy executable\n"
+              << "\t-o,--output [PATH to folder]\tSpecify the destination path\n"
+              << '\n'
+              << "Optional arguments:\n"
+              << "\t-l,--landmarks [PATH to file]\tPath to the source landmarks, apply registration to these landmarks.\n\t\tMust be a csv file with x,y values starting 2nd row, 2nd line."
+              << "\t-F,--FullResolution\tApply registration to the full resolution RGB images\n"
+              << "\t-r,--resample [VALUE]\tPercentage of the full resolution the images will be resampled to, used for computation.\n\t\tMust be a percentage but DO NOT add %. Default: 4%\n"
+              << "\t-i,--iteration [VALUE]\tNumber of iteration used for initial brute search before affine registration.\n\t\tMust be a integer. Default: 5000.\n"
+              << "\t-k,--kernel [VALUE]\tDefine size of the kernel, it will be the size of the resampled image divided by this value.\n\t\tMust be an integer. Small values will increase size of the kernel and so increase runtime.\n"
               << endl;
 }
 
@@ -107,11 +119,12 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    // Compulsory arguments
+    // PATH
     string PATH_Output_DIR;
     string PATH_source;
     string PATH_target;
     string PATH_landmarks;
+    string PATH_Output_Temp;
 
     //Executables
     string c2d_executable = "/cbica/home/venetl/comp_space/itksnap-experimental-master-Linux-gcc64/itksnap-3.8.0-beta-20181028-Linux-gcc64/bin/c2d";
@@ -130,6 +143,7 @@ int main(int argc, char* argv[])
 	int greedy_executable_provided = 0;
     int Flag_Full_Resolution = 0;
     int Flag_landmarks = 0;
+    int PATH_Output_Temp_provided = 0;
 
     cout << "Reading arguments..." << '\n';
 
@@ -221,18 +235,24 @@ int main(int argc, char* argv[])
 					return 1;
 				}
 			}
+            if ((arg == "-t") || (arg == "--tmp_directory")) {
+				if (i + 1 < argc) { // Make sure we aren't at the end of argv!
+					PATH_Output_Temp = argv[++i];
+					PATH_Output_Temp_provided = 1;
+				}
+				else { // Uh-oh, there was no argument to the destination option.
+					cerr << "--tmp_directory option requires one argument." << '\n';
+					return 1;
+				}
+			}
         }
     }
 
     // Check compulsory arguments
-    if ((Output_provided == 0) || (Moving_provided == 0) || (Fixed_provided == 0) || (c2d_executable_provided == 0)){
-        cerr << "Error: Missing compulsory argument : -m, -f, -o, -c" << '\n';
+    if ((Output_provided == 0) || (Moving_provided == 0) || (Fixed_provided == 0) || (c2d_executable_provided == 0) || (greedy_executable_provided == 0)){
+        cerr << "Error: Missing compulsory argument : -m, -f, -o, -c, -g" << '\n';
         return 1;
     }
-
-	//#ifdef _WIN32
-	//c2d_executable = c2d_executable + ".exe";
-	//#endif
 
     string s1 = "6";
     string s2 = "5";
@@ -257,7 +277,10 @@ int main(int argc, char* argv[])
 
     // Create string for output folder
     string PATH_Output = PATH_Output_DIR + string("/") + name_source + string("_to_") + name_target;
-    string PATH_Output_Temp = PATH_Output + "/tmp";
+    
+    if ( PATH_Output_Temp_provided == 0){
+        PATH_Output_Temp = PATH_Output + "/tmp";
+    }
 
     // Create output folder
 	createDir(PATH_Output_DIR.c_str());
@@ -381,15 +404,9 @@ int main(int argc, char* argv[])
 	grep = " | grep \" 1 \"";
 #endif
 
-    // DEBUG
-	//string Four_corners_command = c2d_executable + string(" ") + PATH_small_target + string(" -dup -cmv -popas Y -popas X -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c00 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c01 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c11 -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c10 -push c00 -push c01 -push c11 -push c10 -add -add -add -lstat | grep \" 1 \"");
 	string Four_corners_command = c2d_executable + string(" ") + PATH_small_target + string(" -dup -cmv -popas Y -popas X -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c00 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c01 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c11 -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c10 -push c00 -push c01 -push c11 -push c10 -add -add -add -lstat" + grep);
 
     string stats_target = GetStdoutFromCommand(Four_corners_command);
-
-	// DEBUG
-	cout << Four_corners_command << '\n';
-	cout << stats_target << '\n';
 
     // Replace multiple consecutive space in the string by only one
     string::iterator new_end = unique(stats_target.begin(), stats_target.end(), BothAreSpaces);
