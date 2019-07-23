@@ -8,9 +8,9 @@
 
 #ifdef WIN32
 	#include <direct.h>
+#else
+#include <sys/dir.h>
 #endif
-
-//#include <sys/dir.h>
 #include <chrono>
 
 #include "itkImageIOBase.h"
