@@ -17,6 +17,8 @@
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
 
+#include "../lib_greedy/greedy/src/GreedyAPI.h"
+
 
 
 
@@ -126,14 +128,14 @@ int main(int argc, char* argv[])
     string PATH_landmarks;
     string PATH_Output_Temp;
 
-    //Executables
-    string c2d_executable = "/cbica/home/venetl/comp_space/itksnap-experimental-master-Linux-gcc64/itksnap-3.8.0-beta-20181028-Linux-gcc64/bin/c2d";
-    string greedy_executable = "/cbica/home/venetl/comp_space/Greedy/bin/greedy";
-
     // Optional arguments
     string resample = "4";
     string Kernel_Divider = "40";
     string iteration = "5000";
+
+    // executables
+    string c2d_executable;
+    string greedy_executable;
     
     // Flags
     int Output_provided = 0;

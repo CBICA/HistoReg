@@ -1,0 +1,3 @@
+[submodule "greedy"]
+	path = greedy
+	url = https://github.com/pyushkevich/greedy.git

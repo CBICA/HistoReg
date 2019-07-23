@@ -13,10 +13,12 @@ INCLUDE( ${ITK_USE_FILE} )
 ADD_EXECUTABLE(
   ${PROJECT_NAME} 
   ${CMAKE_CURRENT_SOURCE_DIR}/src/HistoReg.cxx
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib_greedy/bin/greedy
 )
 
 # Link the libraries to be used
 TARGET_LINK_LIBRARIES(
   ${PROJECT_NAME}
   ${ITK_LIBRARIES}
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib_greedy/greedy/src
 )
