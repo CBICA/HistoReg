@@ -10,14 +10,14 @@
 	#include <direct.h>
 #endif
 
-#include <sys/dir.h>
+//#include <sys/dir.h>
 #include <chrono>
 
 #include "itkImageIOBase.h"
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
 
-#include "../greedy/src/GreedyAPI.h"
+//#include "../greedy/src/GreedyAPI.h"
 
 
 
