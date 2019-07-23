@@ -17,7 +17,7 @@
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
 
-//#include "../greedy/src/GreedyAPI.h"
+#include "../greedy/src/GreedyAPI.h"
 
 
 
@@ -142,7 +142,7 @@ int main(int argc, char* argv[])
     int Fixed_provided = 0;
     int Moving_provided = 0;
     int c2d_executable_provided = 0;
-	int greedy_executable_provided = 0;
+	  int greedy_executable_provided = 0;
     int Flag_Full_Resolution = 0;
     int Flag_landmarks = 0;
     int PATH_Output_Temp_provided = 0;

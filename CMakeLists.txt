@@ -9,8 +9,22 @@ PROJECT( ${PROJECT_NAME} )
 FIND_PACKAGE( ITK REQUIRED )
 INCLUDE( ${ITK_USE_FILE} )
 
-# add greedy to compilation
-ADD_SUBDIRECTORY(greedy)
+# add greedy files to compilation
+FILE( GLOB_RECURSE GREEDY_SOURCES "${PROJECT_SOURCE_DIR}/greedy/src/*.*" )
+FILE( GLOB_RECURSE GREEDY_SOURCES_UTILS "${PROJECT_SOURCE_DIR}/greedy/utilities/*.*" )
+SET( GREEDY_SOURCES ${GREEDY_SOURCES} ${GREEDY_SOURCES_UTILS} )
+
+INCLUDE_DIRECTORIES(
+  ${PROJECT_SOURCE_DIR}/greedy/src/
+  ${PROJECT_SOURCE_DIR}/greedy/src/bk
+  ${PROJECT_SOURCE_DIR}/greedy/src/dijkstra
+  ${PROJECT_SOURCE_DIR}/greedy/src/ITKFilters
+  ${PROJECT_SOURCE_DIR}/greedy/src/ITKFilters/include
+  ${PROJECT_SOURCE_DIR}/greedy/src/macf
+  ${PROJECT_SOURCE_DIR}/greedy/utilities
+)
+
+ADD_LIBRARY(GREEDY_LIB ${GREEDY_SOURCES})
 
 # Add sources to executable
 ADD_EXECUTABLE(
@@ -23,6 +37,7 @@ ADD_EXECUTABLE(
 TARGET_LINK_LIBRARIES(
   ${PROJECT_NAME}
   ${ITK_LIBRARIES}
+  ${GREEDY_LIB}
   #${CMAKE_CURRENT_SOURCE_DIR}/greedy/src
 )
 
