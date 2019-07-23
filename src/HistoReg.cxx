@@ -7,7 +7,7 @@
 // #include <stdlib.h>
 
 #ifdef WIN32
-	#include <direct.h>
+#include <direct.h>
 #else
 #include <sys/dir.h>
 #endif
