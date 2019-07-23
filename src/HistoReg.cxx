@@ -17,7 +17,7 @@
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
 
-#include "../lib_greedy/greedy/src/GreedyAPI.h"
+#include "../greedy/src/GreedyAPI.h"
 
 
 
