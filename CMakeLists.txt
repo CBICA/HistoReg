@@ -42,8 +42,9 @@ ADD_LIBRARY(GREEDY_LIB ${GREEDY_SOURCES_ALL})
 ADD_EXECUTABLE(
   ${PROJECT_NAME} 
   ${CMAKE_CURRENT_SOURCE_DIR}/src/HistoReg.cxx
-  ${PROJECT_SOURCE_DIR}/greedy/src/GreedyParameters.cxx
-  #${CMAKE_CURRENT_SOURCE_DIR}/greedy/bin/greedy
+  #${PROJECT_SOURCE_DIR}/greedy/src/GreedyParameters.cxx
+  #${PROJECT_SOURCE_DIR}/greedy/src/GreedyAPI.cxx
+  ${GREEDY_SOURCES_ALL}
 )
 
 # Link the libraries to be used
@@ -51,7 +52,6 @@ TARGET_LINK_LIBRARIES(
   ${PROJECT_NAME}
   ${ITK_LIBRARIES}
   ${GREEDY_LIB}
-  #${CMAKE_CURRENT_SOURCE_DIR}/greedy/src
 )
 
 INSTALL( TARGETS ${PROJECT_NAME} 
