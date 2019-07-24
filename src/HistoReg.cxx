@@ -538,6 +538,8 @@ int main(int argc, char* argv[])
 
     cout << "Registration..." << '\n';
     cout << "   Computing affine..." << '\n';
+    chrono::time_point<chrono::system_clock> start_registration, end_registration;
+    start_registration = chrono::system_clock::now();
 
     // Registration
     // Affine
