@@ -8,8 +8,10 @@
 
 #ifdef WIN32
 #include <direct.h>
-#else
-#include <sys/dir.h>
+#endif
+
+#ifdef __linux__
+    #include <sys/dir.h>
 #endif
 #include <chrono>
 
@@ -17,8 +19,8 @@
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
 
-#include "../greedy/src/GreedyAPI.h"
-
+#include "GreedyAPI.h"
+//#include "GreedyParameters.h"
 
 
 
@@ -550,6 +552,31 @@ int main(int argc, char* argv[])
     string PATH_small_inv_warp = PATH_Output + string("/small_inv_warp.nii.gz");
     string command_defformable = greedy_executable + " -d 2 -m NCC " + to_string(kernel) + "x" + to_string(kernel) + " -i " + PATH_small_target_padded + " " + PATH_small_source_padded + " -it " + PATH_small_affine + " -o " + PATH_small_warp + " -oinv " + PATH_small_inv_warp + " -n 150x50x10 -s " + s1 + "vox" + " " + s2 + "vox"; 
     system(command_defformable.c_str());
+    
+    end_registration = chrono::system_clock::now();
+    duration = chrono::duration_cast<chrono::seconds> (end_registration-start_registration).count();
+    cout << "Registration took : " << duration << " secondes." << '\n';
+
+    // new registration
+    GreedyParameters param;
+    //GreedyParameters::SetToDefaults(param);
+    // param.mode = GreedyParameters::AFFINE;
+    // param.affine_dof = GreedyParameters::DOF_AFFINE;
+
+    // param.dim = 2;
+
+    // param.metric = GreedyParameters::NCC;
+
+    // vector<int> iteration_vector;
+    // iteration_vector.push_back(150);
+    // iteration_vector.push_back(100);
+    // iteration_vector.push_back(50);
+
+    // param.iter_per_level = iteration_vector;
+    
+    //ImagePairSpec ip;
+    //ip.target = PATH_small_target_padded;
+    //ip.moving = PATH_small_moving_padded;
     
     cout << "   Applying registration to small grayscale images..." << '\n';
     // Apply to small images
