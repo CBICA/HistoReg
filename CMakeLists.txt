@@ -42,6 +42,7 @@ ADD_LIBRARY(GREEDY_LIB ${GREEDY_SOURCES_ALL})
 ADD_EXECUTABLE(
   ${PROJECT_NAME} 
   ${CMAKE_CURRENT_SOURCE_DIR}/src/HistoReg.cxx
+  ${PROJECT_SOURCE_DIR}/greedy/src/GreedyParameters.cxx
   #${CMAKE_CURRENT_SOURCE_DIR}/greedy/bin/greedy
 )
 
