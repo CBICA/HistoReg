@@ -71,6 +71,36 @@ bool createDir(const std::string &dir_name)
 	return false;
 }
 
+void remove_dir(char *path)
+{
+    struct dirent *entry = NULL;
+    DIR *dir = NULL;
+    dir = opendir(path);
+    while( entry = readdir(dir) )
+    {   
+            DIR *sub_dir = NULL;
+            FILE *file = NULL;
+            char abs_path[100] = {0};
+            if(*(entry->d_name) != '.')
+            {   
+                    sprintf(abs_path, "%s/%s", path, entry->d_name);
+                    if( sub_dir = opendir(abs_path) )
+                    {   
+                            closedir(sub_dir);
+                            remove_dir(abs_path);
+                    }   
+                    else 
+                    {   
+                            if( file = fopen(abs_path, "r") )
+                            {   
+                                    fclose(file);
+                                    remove(abs_path);
+                            }   
+                    }   
+            }   
+    }   
+    remove(path);
+}
 
 string GetStdoutFromCommand(string cmd) 
 {
@@ -109,7 +139,7 @@ static void show_usage(string name)
               << "\t-m,--moving [PATH to file]\tPATH to the moving image\n"
               << "\t-f,--fixed [PATH to file]\tPATH to the fixed image\n"
               << "\t-c,--c2d_executable [PATH to file]\tPath to c2d executable\n"
-              << "\t-o,--output [PATH to folder]\tSpecify the destination path\n"
+              << "\t-o,--output [PATH to directory]\tSpecify the destination path, folder will be created if it doesn't exist.\n"
               << '\n'
               << "Optional arguments:\n"
               << "\t-l,--landmarks [PATH to file]\tPath to the source landmarks, apply registration to these landmarks.\n\t\tMust be a csv file with x,y values starting 2nd row, 2nd line."
@@ -118,6 +148,7 @@ static void show_usage(string name)
               << "\t-r,--resample [VALUE]\tPercentage of the full resolution the images will be resampled to, used for computation.\n\t\tMust be a percentage but DO NOT add %. Default: 4%\n"
               << "\t-i,--iteration [VALUE]\tNumber of iteration used for initial brute search before affine registration.\n\t\tMust be a integer. Default: 5000.\n"
               << "\t-k,--kernel [VALUE]\tDefine size of the kernel, it will be the size of the resampled image divided by this value.\n\t\tMust be an integer. Small values will increase size of the kernel and so increase runtime.\n"
+              << "\t-t,--tmp_directory [PATH to directory]\tPATH to temporary directory, stores temporary files, folder will be created if it doesn't exist."
               << endl;
 }
 
@@ -260,7 +291,7 @@ int main(int argc, char* argv[])
 
     // Check compulsory arguments
     if ((Output_provided == 0) || (Moving_provided == 0) || (Fixed_provided == 0) || (c2d_executable_provided == 0)){
-        cerr << "Error: Missing compulsory argument : -m, -f, -o, -c, -g" << '\n';
+        cerr << "Error: Missing compulsory argument : -m, -f, -o, -c" << '\n';
         return 1;
     }
 
@@ -292,11 +323,30 @@ int main(int argc, char* argv[])
         PATH_Output_Temp = PATH_Output + "/tmp";
     }
 
+    string PATH_Output_niftis = PATH_Output + "/Saved_NIFTIs";
+    string PATH_Output_niftis_small = PATH_Output_niftis + "/small_resolution";
+    string PATH_Output_niftis_full = PATH_Output_niftis + "/full_resolution";
+    string PATH_Output_metrics = PATH_Output + "/metrics";
+    string PATH_Output_metrics_small = PATH_Output_metrics + "/small_resolution";
+    string PATH_Output_metrics_full = PATH_Output_metrics + "/full_resolution";
+
     // Create output folder
 	createDir(PATH_Output_DIR.c_str());
     createDir(PATH_Output.c_str());
     createDir(PATH_Output_Temp.c_str());
-	
+    createDir(PATH_Output_metrics.c_str());
+	createDir(PATH_Output_metrics_small.c_str());
+    createDir(PATH_Output_metrics_full.c_str());
+
+    if (Flag_Small_Resolution){
+        createDir(PATH_Output_niftis.c_str());
+        createDir(PATH_Output_niftis_small.c_str());
+    }
+    if (Flag_Full_Resolution){
+        createDir(PATH_Output_niftis.c_str());
+        createDir(PATH_Output_niftis_full.c_str());
+    }
+
     cout << "Done." << '\n';
 
     // Extract sizes
@@ -343,8 +393,8 @@ int main(int argc, char* argv[])
 
     string Resampling_command = "-smooth-fast 6x5vox -resample " + resample + "% -spacing 1x1mm -orient LP -origin 0x0mm -o";
 
-    string PATH_small_target = PATH_Output + string("/new_small_target.nii.gz");
-    string PATH_small_source = PATH_Output + string("/new_small_source.nii.gz");
+    string PATH_small_target = PATH_Output_Temp + string("/new_small_target.nii.gz");
+    string PATH_small_source = PATH_Output_Temp + string("/new_small_source.nii.gz");
 
     string command_source = c2d_executable + string(" ") + PATH_target + string(" ") + Resampling_command + string(" ") + PATH_small_target;
     string command_target = c2d_executable + string(" ") + PATH_source + string(" ") + Resampling_command + string(" ") + PATH_small_source;
@@ -458,8 +508,17 @@ int main(int argc, char* argv[])
     string New_size_H = Size_small_target_H;
     string New_size_W = Size_small_target_W;
 
-    string PATH_small_target_padded = PATH_Output + string("/new_small_target_padded.nii.gz");
-    string PATH_small_source_padded = PATH_Output + string("/new_small_source_padded.nii.gz");
+    string PATH_small_target_padded;
+    string PATH_small_source_padded;
+
+    if ( Flag_Small_Resolution == 1 ){
+        PATH_small_target_padded = PATH_Output_niftis_small + string("/new_small_target_padded.nii.gz");
+        PATH_small_source_padded = PATH_Output_niftis_small + string("/new_small_source_padded.nii.gz");
+    }
+    else{
+        PATH_small_target_padded = PATH_Output_Temp + string("/new_small_target_padded.nii.gz");
+        PATH_small_source_padded = PATH_Output_Temp + string("/new_small_source_padded.nii.gz");
+    }
 
     if ( Size_small_source_H != Size_small_target_H || Size_small_source_W != Size_small_target_W )
     {
@@ -600,7 +659,7 @@ int main(int argc, char* argv[])
     param_Aff.gradient_mask_trim_radius = kernel_radius;
 
     // Define output
-    string PATH_small_affine = PATH_Output + string("/small_Affine.mat");
+    string PATH_small_affine = PATH_Output_metrics_small + string("/small_Affine.mat");
     param_Aff.output = PATH_small_affine;
 
     // Run affine
@@ -642,8 +701,8 @@ int main(int argc, char* argv[])
     param_Diff.sigma_post.sigma = stod(s2);
 
     // Define output
-    string PATH_small_warp = PATH_Output + string("/small_warp.nii.gz");
-    string PATH_small_inv_warp = PATH_Output + string("/small_inv_warp.nii.gz");
+    string PATH_small_warp = PATH_Output_metrics_small + string("/small_warp.nii.gz");
+    string PATH_small_inv_warp = PATH_Output_metrics_small + string("/small_inv_warp.nii.gz");
 
     param_Diff.inverse_warp = PATH_small_inv_warp;
     param_Diff.output = PATH_small_warp;
@@ -687,7 +746,7 @@ int main(int argc, char* argv[])
         // Define source, target, interpolation, and output
         Reslices_images.moving = PATH_small_source_padded;
         Reslices_images.interp = Interp;
-        string PATH_small_registered_image = PATH_Output + string("/small_registeredImage.nii.gz");
+        string PATH_small_registered_image = PATH_Output_niftis_small + string("/small_registeredImage.nii.gz");
         Reslices_images.output = PATH_small_registered_image;
         param_reslice.reslice_param.images.push_back(Reslices_images);
         param_reslice.reslice_param.ref_image = PATH_small_target_padded;
@@ -737,7 +796,7 @@ int main(int argc, char* argv[])
     long double new_val_2 = my_var[5] * factor;
 
     // Write new matrix adapted to full resolution images
-    string PATH_affine = PATH_Output + "/Affine.mat";
+    string PATH_affine = PATH_Output_metrics_full + "/Affine.mat";
     ofstream AffineFile;
     AffineFile.open(PATH_affine);
     AffineFile << to_string(my_var[0]) + " " + to_string(my_var[1]) + " " + to_string(new_val_1) + '\n' + to_string(my_var[3]) + " " + to_string(my_var[4]) + " " + to_string(new_val_2) + '\n' + to_string(my_var[6]) + to_string(my_var[7]) + " " + to_string(my_var[8]);
@@ -768,7 +827,7 @@ int main(int argc, char* argv[])
     command = c2d_executable + " -mcs " + PATH_small_warp_no_pad + " -foreach -trim 0vox -endfor -omc " + PATH_small_warp_no_pad_trim;
     system(command.c_str());
 
-    string PATH_big_warp = PATH_Output + "/big_warp.nii.gz";
+    string PATH_big_warp = PATH_Output_metrics_full + "/big_warp.nii.gz";
     command = c2d_executable + " -mcs " + PATH_small_warp_no_pad_trim + " -foreach -resample " + Size_original_target_W + "x" + Size_original_target_H + " -scale " + to_string(factor) + " -spacing 1x1mm -origin 0x0mm -endfor -omc " + PATH_big_warp;
     system(command.c_str());
 
@@ -895,7 +954,6 @@ int main(int argc, char* argv[])
         myfile.open(PATH_warped_landmarks);
         myfile << ",X,Y," << '\n';
 
-        // NEED CHANGES, probably what's commented, not tested tho
         for ( unsigned i = 0; i < CSV_warped.size(); i++){
             myfile << i << ",";
             for ( unsigned j = 0; j < CSV_warped[i].size(); j++){
@@ -916,19 +974,19 @@ int main(int argc, char* argv[])
         cout << "   Apply registration to full resolution RGB images." << '\n';
         cout << "   Adapting source..." << '\n';
 
-        string PATH_new_source = PATH_Output_Temp + "/new_source.nii.gz";
+        string PATH_new_source = PATH_Output_niftis_full + "/new_source.nii.gz";
         command = c2d_executable + " -mcs " + PATH_source + " -foreach -orient LP -spacing 1x1mm -origin 0x0mm -endfor -omc " + PATH_new_source;
         system(command.c_str());
         cout << "   Done." << '\n';
 
         cout << "   Adapting target..." << '\n';
-        string PATH_new_target = PATH_Output_Temp + "/new_target.nii.gz";
+        string PATH_new_target = PATH_Output_niftis_full + "/new_target.nii.gz";
         command = c2d_executable + " -mcs " + PATH_target + " -foreach -orient LP -spacing 1x1mm -origin 0x0mm -endfor -omc " + PATH_new_target;
         system(command.c_str());
         cout << "   Done." << '\n';
 
         cout << "   Applying registration..." << '\n';
-        string PATH_registered_image = PATH_Output + "/registeredImage.nii.gz";
+        string PATH_registered_image = PATH_Output_niftis_full + "/registeredImage.nii.gz";
 
         // Reset param
         GreedyParameters param_reslice_full;
@@ -965,6 +1023,10 @@ int main(int argc, char* argv[])
         duration = chrono::duration_cast<chrono::seconds> (end_intermediate-start_intermediate).count();
         cout << "Apply transformation to original images took : " << duration << " secondes." << '\n';
     }
+
+    cout << "Removing temporary directory..." << '\n';
+
+    remove_dir(const_cast<char*> (PATH_Output_Temp.c_str()));
 
     cout << "Program finished." << '\n';
 
