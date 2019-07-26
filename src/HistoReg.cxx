@@ -569,42 +569,42 @@ int main(int argc, char* argv[])
     iteration_vector.push_back(10);
 
     // Define greedy parameters
-    GreedyParameters param;
-    GreedyParameters::SetToDefaults(param);
+    GreedyParameters param_Aff;
+    GreedyParameters::SetToDefaults(param_Aff);
 
     // Define mode and dimension
-    param.mode = GreedyParameters::AFFINE;
-    param.affine_dof = GreedyParameters::DOF_AFFINE;
-    param.dim = 2;
+    param_Aff.mode = GreedyParameters::AFFINE;
+    param_Aff.affine_dof = GreedyParameters::DOF_AFFINE;
+    param_Aff.dim = 2;
 
     // Define metric and kernel
-    param.metric = GreedyParameters::NCC;
-    param.metric_radius = kernel_radius;
+    param_Aff.metric = GreedyParameters::NCC;
+    param_Aff.metric_radius = kernel_radius;
 
     // Define number of iteration
-    param.iter_per_level = iteration_vector;
+    param_Aff.iter_per_level = iteration_vector;
     
     // Define source and target
     ImagePairSpec ip;
     ip.fixed = PATH_small_target_padded;
     ip.moving = PATH_small_source_padded;
-    param.inputs.push_back(ip);
+    param_Aff.inputs.push_back(ip);
 
     // Define parameters for brute search
-    param.rigid_search.mode = RANDOM_NORMAL_ROTATION;
-    param.rigid_search.sigma_angle = 180;
-    param.rigid_search.iterations = stoi(iteration);
-    param.rigid_search.sigma_xyz = offset;
+    param_Aff.rigid_search.mode = RANDOM_NORMAL_ROTATION;
+    param_Aff.rigid_search.sigma_angle = 180;
+    param_Aff.rigid_search.iterations = stoi(iteration);
+    param_Aff.rigid_search.sigma_xyz = offset;
 
     // Define kernel for mask
-    param.gradient_mask_trim_radius = kernel_radius;
+    param_Aff.gradient_mask_trim_radius = kernel_radius;
 
     // Define output
     string PATH_small_affine = PATH_Output + string("/small_Affine.mat");
-    param.output = PATH_small_affine;
+    param_Aff.output = PATH_small_affine;
 
     // Run affine
-    GreedyRunner<2, double>::Run(param);
+    GreedyRunner<2, double>::Run(param_Aff);
 
 
 
@@ -616,53 +616,44 @@ int main(int argc, char* argv[])
     TransformAff.filename = PATH_small_affine;
 
     // Reset param
-    GreedyParameters::SetToDefaults(param);
+    GreedyParameters param_Diff;
+    GreedyParameters::SetToDefaults(param_Diff);
 
     // Define dimension and mode
-    param.mode = GreedyParameters::GREEDY;
-    param.dim = 2;
+    param_Diff.mode = GreedyParameters::GREEDY;
+    param_Diff.dim = 2;
 
     // Define metric and kernel
-    param.metric = GreedyParameters::NCC;
-    param.metric_radius = kernel_radius;
+    param_Diff.metric = GreedyParameters::NCC;
+    param_Diff.metric_radius = kernel_radius;
 
     // Define source and target
-    param.inputs.push_back(ip);
+    param_Diff.inputs.push_back(ip);
 
     // Define affine transformation to be applied before diffeomorphic registration
-    param.moving_pre_transforms.push_back(TransformAff);
+    param_Diff.moving_pre_transforms.push_back(TransformAff);
 
     // Defin number of iteration (100x50x10)
-    param.iter_per_level = iteration_vector;
+    param_Diff.iter_per_level = iteration_vector;
 
     // Define smoothing parameters
     //SmoothingParameters sigma_pre, sigma_post;
-    param.sigma_pre.sigma = stod(s1);
-    param.sigma_post.sigma = stod(s2);
+    param_Diff.sigma_pre.sigma = stod(s1);
+    param_Diff.sigma_post.sigma = stod(s2);
 
     // Define output
     string PATH_small_warp = PATH_Output + string("/small_warp.nii.gz");
     string PATH_small_inv_warp = PATH_Output + string("/small_inv_warp.nii.gz");
 
-    param.inverse_warp = PATH_small_inv_warp;
-    param.output = PATH_small_warp;
+    param_Diff.inverse_warp = PATH_small_inv_warp;
+    param_Diff.output = PATH_small_warp;
 
     // Run Diffeomorphic registration
-    GreedyRunner<2, double>::Run(param);
+    GreedyRunner<2, double>::Run(param_Diff);
 
     end_intermediate = chrono::system_clock::now();
     duration = chrono::duration_cast<chrono::seconds> (end_intermediate-start_intermediate).count();
     cout << "Registration took : " << duration << " secondes." << '\n';
-
-    // Define diffeomorphic transformation, if not used to apply on the small images, might be used for the landmarks
-    vector<TransformSpec> Transformations;
-    TransformSpec TransformDiff;
-    TransformDiff.filename = PATH_small_warp;
-
-    // Define transformations
-    Transformations.push_back(TransformDiff);
-    Transformations.push_back(TransformAff);
-    param.reslice_param.transforms = Transformations;
 
     // Define interpolation as linear, same idea as transformation
     ResliceSpec Reslices_images;
@@ -674,22 +665,33 @@ int main(int argc, char* argv[])
         // Apply to small images
         cout << "   Applying to small grayscale images..." << '\n';
         // Reset param
-        GreedyParameters::SetToDefaults(param);
+        GreedyParameters param_reslice;
+        GreedyParameters::SetToDefaults(param_reslice);
 
         // Define dimension and mode
-        param.dim = 2;
-        param.mode = GreedyParameters::RESLICE;
+        param_reslice.dim = 2;
+        param_reslice.mode = GreedyParameters::RESLICE;
+
+
+        // Define diffeomorphic transformation
+        vector<TransformSpec> Transformations;
+        TransformSpec TransformDiff;
+        TransformDiff.filename = PATH_small_warp;
+
+        // Define transformations
+        Transformations.push_back(TransformDiff);
+        Transformations.push_back(TransformAff);
 
         // Define source, target, interpolation, and output
         Reslices_images.moving = PATH_small_source_padded;
         Reslices_images.interp = Interp;
         string PATH_small_registered_image = PATH_Output + string("/small_registeredImage.nii.gz");
         Reslices_images.output = PATH_small_registered_image;
-        param.reslice_param.images.push_back(Reslices_images);
-        param.reslice_param.ref_image = PATH_small_target_padded;
+        param_reslice.reslice_param.images.push_back(Reslices_images);
+        param_reslice.reslice_param.ref_image = PATH_small_target_padded;
 
         // Run reslice
-        GreedyRunner<2, double>::Run(param);
+        GreedyRunner<2, double>::Run(param_reslice);
 
         end_intermediate = chrono::system_clock::now();
         duration = chrono::duration_cast<chrono::seconds> (end_intermediate-start_intermediate).count();
@@ -828,24 +830,33 @@ int main(int argc, char* argv[])
         string PATH_small_warped_landmarks = PATH_Output_Temp + "/lm_small_source_warped.csv";
 
         // reset param
-        GreedyParameters::SetToDefaults(param);
+        GreedyParameters param_lm;
+        GreedyParameters::SetToDefaults(param_lm);
 
         // Define dim en mode
-        param.dim = 2;
-        param.mode = GreedyParameters::RESLICE;
+        param_lm.dim = 2;
+        param_lm.mode = GreedyParameters::RESLICE;
 
         // Define source, target and output
         ResliceMeshSpec Reslices_lm_full;
         Reslices_lm_full.fixed = PATH_small_landmarks;
         Reslices_lm_full.output = PATH_small_warped_landmarks;
-        param.reslice_param.meshes.push_back(Reslices_lm_full);
-        param.reslice_param.ref_image = PATH_small_source;
+        param_lm.reslice_param.meshes.push_back(Reslices_lm_full);
+        param_lm.reslice_param.ref_image = PATH_small_source;
 
         // Define transofrmations
-        param.reslice_param.transforms = Transformations;
+        vector<TransformSpec> Transformations_lm;
+        TransformSpec TransformDiffLM, TransformAffLM;
+        TransformDiffLM.filename = PATH_small_inv_warp;
+        TransformAffLM.filename = PATH_small_affine;
+        TransformAffLM.exponent = -1;
+
+        Transformations_lm.push_back(TransformDiffLM);
+        Transformations_lm.push_back(TransformAffLM);
+        param_lm.reslice_param.transforms = Transformations_lm;
 
         // Run
-        GreedyRunner<2, double>::Run(param);
+        GreedyRunner<2, double>::Run(param_lm);
 
         // Convert small landmarks to full resolution
         ifstream data2(PATH_small_warped_landmarks);
@@ -919,11 +930,12 @@ int main(int argc, char* argv[])
         string PATH_registered_image = PATH_Output + "/registeredImage.nii.gz";
 
         // Reset param
-        GreedyParameters::SetToDefaults(param);
+        GreedyParameters param_reslice_full;
+        GreedyParameters::SetToDefaults(param_reslice_full);
 
         // Define dimension and mode
-        param.dim = 2;
-        param.mode = GreedyParameters::RESLICE;
+        param_reslice_full.dim = 2;
+        param_reslice_full.mode = GreedyParameters::RESLICE;
 
         // Define transformation to be applied
         ResliceSpec Reslices_images_full;
@@ -935,18 +947,18 @@ int main(int argc, char* argv[])
 
         Transformations_full.push_back(TransformDiffFull);
         Transformations_full.push_back(TransformAffFull);
-        param.reslice_param.transforms = Transformations_full;
+        param_reslice_full.reslice_param.transforms = Transformations_full;
 
         // Define source, target, interpolation mode and output
         Reslices_images_full.moving = PATH_new_source;
         Reslices_images_full.interp = Interp;
         Reslices_images_full.output = PATH_registered_image;
 
-        param.reslice_param.images.push_back(Reslices_images_full);
-        param.reslice_param.ref_image = PATH_new_target;
+        param_reslice_full.reslice_param.images.push_back(Reslices_images_full);
+        param_reslice_full.reslice_param.ref_image = PATH_new_target;
 
         // Run greedy
-        GreedyRunner<2, double>::Run(param);
+        GreedyRunner<2, double>::Run(param_reslice_full);
         cout << "   Done." << '\n';
         end_intermediate = chrono::system_clock::now();
         duration = chrono::duration_cast<chrono::seconds> (end_intermediate-start_intermediate).count();
