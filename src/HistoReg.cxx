@@ -93,7 +93,7 @@ int removeDirectoryRecursively(const std::string &dirname, bool bDeleteSubdirect
 
 	return 0;
 #else   
-	std::string passString = "rmdir " + dirname;
+	std::string passString = "rm -rf " + dirname;
 	system(passString.c_str());
 #endif
 	return 0;
