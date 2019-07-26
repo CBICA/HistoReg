@@ -682,6 +682,8 @@ int main(int argc, char* argv[])
         Transformations.push_back(TransformDiff);
         Transformations.push_back(TransformAff);
 
+        param_reslice.reslice_param.transforms = Transformations;
+
         // Define source, target, interpolation, and output
         Reslices_images.moving = PATH_small_source_padded;
         Reslices_images.interp = Interp;
@@ -895,11 +897,10 @@ int main(int argc, char* argv[])
 
         // NEED CHANGES, probably what's commented, not tested tho
         for ( unsigned i = 0; i < CSV_warped.size(); i++){
-            //myfile << i << ",";
+            myfile << i << ",";
             for ( unsigned j = 0; j < CSV_warped[i].size(); j++){
-                //myfile << CSV_warped[i][j] << ",";
-                myfile << i << "," << CSV_warped[i][j] << ",";
-            }
+                myfile << CSV_warped[i][j] << ",";
+                }
             myfile << '\n';
         }
         cout << "   Done." << '\n';
