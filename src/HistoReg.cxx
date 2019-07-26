@@ -22,7 +22,82 @@
 #include "GreedyAPI.h"
 //#include "GreedyParameters.h"
 
+int removeDirectoryRecursively(const std::string &dirname, bool bDeleteSubdirectories = true)
+{
+#if defined(_WIN32)
+	bool bSubdirectory = false;       // Flag, indicating whether
+									  // subdirectories have been found
+	HANDLE hFile;                     // Handle to directory
+	std::string strFilePath;          // Filepath
+	std::string strPattern;           // Pattern
+	WIN32_FIND_DATA FileInformation;  // File information    
 
+	strPattern = dirname + "/*.*";
+	hFile = ::FindFirstFile(strPattern.c_str(), &FileInformation);
+	if (hFile != INVALID_HANDLE_VALUE)
+	{
+		do
+		{
+			if (FileInformation.cFileName[0] != '.')
+			{
+				strFilePath.erase();
+				strFilePath = dirname + "/" + FileInformation.cFileName;
+
+				if (FileInformation.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+				{
+					if (bDeleteSubdirectories)
+					{
+						// Delete subdirectory
+						int iRC = removeDirectoryRecursively(strFilePath, bDeleteSubdirectories);
+						if (iRC)
+							return iRC;
+					}
+					else
+						bSubdirectory = true;
+				}
+				else
+				{
+					// Set file attributes
+					if (::SetFileAttributes(strFilePath.c_str(),
+						FILE_ATTRIBUTE_NORMAL) == FALSE)
+						return ::GetLastError();
+
+					// Delete file
+					if (::DeleteFile(strFilePath.c_str()) == FALSE)
+						return ::GetLastError();
+				}
+			}
+		} while (::FindNextFile(hFile, &FileInformation) == TRUE);
+
+		// Close handle
+		::FindClose(hFile);
+
+		DWORD dwError = ::GetLastError();
+		if (dwError != ERROR_NO_MORE_FILES)
+			return dwError;
+		else
+		{
+			if (!bSubdirectory)
+			{
+				// Set directory attributes
+				if (::SetFileAttributes(dirname.c_str(),
+					FILE_ATTRIBUTE_NORMAL) == FALSE)
+					return ::GetLastError();
+
+				// Delete directory
+				if (::RemoveDirectory(dirname.c_str()) == FALSE)
+					return ::GetLastError();
+			}
+		}
+	}
+
+	return 0;
+#else   
+	std::string passString = "rmdir " + dirname;
+	system(passString.c_str());
+#endif
+	return 0;
+}
 
 using namespace std;
 
@@ -69,37 +144,6 @@ bool createDir(const std::string &dir_name)
 	return true;
 #endif
 	return false;
-}
-
-void remove_dir(char *path)
-{
-    struct dirent *entry = NULL;
-    DIR *dir = NULL;
-    dir = opendir(path);
-    while( entry = readdir(dir) )
-    {   
-            DIR *sub_dir = NULL;
-            FILE *file = NULL;
-            char abs_path[100] = {0};
-            if(*(entry->d_name) != '.')
-            {   
-                    sprintf(abs_path, "%s/%s", path, entry->d_name);
-                    if( sub_dir = opendir(abs_path) )
-                    {   
-                            closedir(sub_dir);
-                            remove_dir(abs_path);
-                    }   
-                    else 
-                    {   
-                            if( file = fopen(abs_path, "r") )
-                            {   
-                                    fclose(file);
-                                    remove(abs_path);
-                            }   
-                    }   
-            }   
-    }   
-    remove(path);
 }
 
 string GetStdoutFromCommand(string cmd) 
@@ -1026,7 +1070,7 @@ int main(int argc, char* argv[])
 
     cout << "Removing temporary directory..." << '\n';
 
-    remove_dir(const_cast<char*> (PATH_Output_Temp.c_str()));
+	removeDirectoryRecursively(PATH_Output_Temp);
 
     cout << "Program finished." << '\n';
 
