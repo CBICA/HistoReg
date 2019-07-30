@@ -435,7 +435,9 @@ int main(int argc, char* argv[])
     chrono::time_point<chrono::system_clock> start_intermediate, end_intermediate;
     start_intermediate = chrono::system_clock::now();
 
-    string Resampling_command = "-smooth-fast 6x5vox -resample " + resample + "% -spacing 1x1mm -orient LP -origin 0x0mm -o";
+    int smoothing = 100/(2*stoi(resample));
+
+    string Resampling_command = "-smooth-fast " + to_string(smoothing) + "x" + to_string(smoothing) + "vox -resample " + resample + "% -spacing 1x1mm -orient LP -origin 0x0mm -o";
 
     string PATH_small_target = PATH_Output_Temp + string("/new_small_target.nii.gz");
     string PATH_small_source = PATH_Output_Temp + string("/new_small_source.nii.gz");
@@ -489,8 +491,8 @@ int main(int argc, char* argv[])
     
     // Get intensities from 4 cornees
     // Computes size kernel
-    int kernel_W = stoi(Size_small_source_W) / stoi(Kernel_Divider);
-    int kernel_H = stoi(Size_small_source_H) / stoi(Kernel_Divider);
+    int kernel_W = stoi(Size_small_target_W) / stoi(Kernel_Divider);
+    int kernel_H = stoi(Size_small_target_H) / stoi(Kernel_Divider);
 
     // Makes the kernel a square
     int kernel = kernel_H; 
@@ -498,6 +500,12 @@ int main(int argc, char* argv[])
     {
         kernel = kernel_W;
     }
+    
+    //DEBUG
+    // cout << Size_small_target_W << " " << Size_small_target_H << endl;
+    // cout << Kernel_Divider << endl;
+    // cout << kernel << endl;
+    // return 1;
 
     // Create the command to get the intensites of the corners
     int Size_W_minus_kernel_target = stoi(Size_small_target_W) - kernel;
@@ -908,8 +916,8 @@ int main(int argc, char* argv[])
             x = stof(CSV[i][1]);
             y = stof(CSV[i][2]);
 
-            small_x = x *1.0*stoi(Size_small_source_W)/stoi(Size_original_source_W)-0.5;
-            small_y = y *1.0*stoi(Size_small_source_H)/stoi(Size_original_source_H)-0.5;
+            small_x = x*1.0*stoi(Size_small_source_W)/stoi(Size_original_source_W)-0.5;
+            small_y = y*1.0*stoi(Size_small_source_H)/stoi(Size_original_source_H)-0.5;
             
             ROW_small.push_back(small_x);
             ROW_small.push_back(small_y);
@@ -956,8 +964,8 @@ int main(int argc, char* argv[])
         TransformAffLM.filename = PATH_small_affine;
         TransformAffLM.exponent = -1;
 
-        Transformations_lm.push_back(TransformDiffLM);
         Transformations_lm.push_back(TransformAffLM);
+        Transformations_lm.push_back(TransformDiffLM);
         param_lm.reslice_param.transforms = Transformations_lm;
 
         // Run
@@ -994,22 +1002,26 @@ int main(int argc, char* argv[])
         }
 
         string PATH_warped_landmarks = PATH_Output + "/warped_landmarks.csv";
-        myfile.precision(numeric_limits<float>::digits10);
-        myfile.open(PATH_warped_landmarks);
-        myfile << ",X,Y," << '\n';
+        ofstream myfile_2;
+        myfile_2.precision(numeric_limits<float>::digits10);
+        myfile_2.open(PATH_warped_landmarks);
+        myfile_2 << ",X,Y," << '\n';
 
         for ( unsigned i = 0; i < CSV_warped.size(); i++){
-            myfile << i << ",";
+            myfile_2 << i << ",";
             for ( unsigned j = 0; j < CSV_warped[i].size(); j++){
-                myfile << CSV_warped[i][j] << ",";
+                myfile_2 << CSV_warped[i][j] << ",";
                 }
-            myfile << '\n';
+            myfile_2 << '\n';
         }
         cout << "   Done." << '\n';
         end_intermediate = chrono::system_clock::now();
         duration = chrono::duration_cast<chrono::seconds> (end_intermediate-start_intermediate).count();
         cout << "Apply transformation to landmarks took : " << duration << " secondes." << '\n';
     }
+    //DEBUG
+    // command="/cbica/home/venetl/comp_space/HistoRegGreedy/src/test_landmarks.sh " + Size_original_source_W + " " + Size_original_source_H + " " + Size_original_target_W + " " + Size_original_target_H + " " + Size_small_source_W + " " + Size_small_source_H + " " + Size_small_target_W + " " + Size_small_target_H + " " + PATH_Output + " " + PATH_landmarks + " " + PATH_Output_Temp;
+    // system(command.c_str());
     
     if ( Flag_Full_Resolution == 1){
         start_intermediate = chrono::system_clock::now();
