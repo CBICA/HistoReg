@@ -1,10 +1,5 @@
 #include <iostream>
 #include <fstream>
-//#include <bits/stdc++.h> 
-//#include <sys/stat.h> 
-// #include <sys/types.h> 
-//#include <string>
-// #include <stdlib.h>
 
 #ifdef WIN32
 #include <direct.h>
@@ -361,7 +356,7 @@ int main(int argc, char* argv[])
     string name_target = name_target_full.substr(0,name_target_full.find(delimiter));
 
     // Create string for output folder
-    string PATH_Output = PATH_Output_DIR + string("/") + name_source + string("_to_") + name_target;
+    string PATH_Output = PATH_Output_DIR + string("/") + name_source + string("_registered_to_") + name_target;
     
     if ( PATH_Output_Temp_provided == 0){
         PATH_Output_Temp = PATH_Output + "/tmp";
@@ -500,12 +495,6 @@ int main(int argc, char* argv[])
     {
         kernel = kernel_W;
     }
-    
-    //DEBUG
-    // cout << Size_small_target_W << " " << Size_small_target_H << endl;
-    // cout << Kernel_Divider << endl;
-    // cout << kernel << endl;
-    // return 1;
 
     // Create the command to get the intensites of the corners
     int Size_W_minus_kernel_target = stoi(Size_small_target_W) - kernel;
@@ -711,7 +700,7 @@ int main(int argc, char* argv[])
     param_Aff.gradient_mask_trim_radius = kernel_radius;
 
     // Define output
-    string PATH_small_affine = PATH_Output_metrics_small + string("/small_Affine.mat");
+     string PATH_small_affine = PATH_Output_metrics_small + string("/small_Affine.mat");
     param_Aff.output = PATH_small_affine;
 
     // Run affine
@@ -819,7 +808,6 @@ int main(int argc, char* argv[])
     string STRING;
     int factor = 100/stoi(resample);
     long double my_var[9];
-    string test;
     delimiter = " ";
     int i = 0;
 
@@ -987,7 +975,7 @@ int main(int argc, char* argv[])
         }
 
         vector<vector<float>> CSV_warped;
-        for ( unsigned i = 1; i < CSV_small_warped.size(); i++){
+        for ( unsigned i = 0; i < CSV_small_warped.size(); i++){
             vector<float> ROW;
             small_x = stof(CSV_small_warped[i][0]);
             small_y = stof(CSV_small_warped[i][1]);
@@ -1019,9 +1007,6 @@ int main(int argc, char* argv[])
         duration = chrono::duration_cast<chrono::seconds> (end_intermediate-start_intermediate).count();
         cout << "Apply transformation to landmarks took : " << duration << " secondes." << '\n';
     }
-    //DEBUG
-    // command="/cbica/home/venetl/comp_space/HistoRegGreedy/src/test_landmarks.sh " + Size_original_source_W + " " + Size_original_source_H + " " + Size_original_target_W + " " + Size_original_target_H + " " + Size_small_source_W + " " + Size_small_source_H + " " + Size_small_target_W + " " + Size_small_target_H + " " + PATH_Output + " " + PATH_landmarks + " " + PATH_Output_Temp;
-    // system(command.c_str());
     
     if ( Flag_Full_Resolution == 1){
         start_intermediate = chrono::system_clock::now();
