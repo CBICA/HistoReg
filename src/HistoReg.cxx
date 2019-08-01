@@ -2,7 +2,7 @@
 #include <fstream>
 
 #ifdef WIN32
-#include <direct.h>
+    #include <direct.h>
 #endif
 
 #ifdef __linux__
@@ -15,7 +15,6 @@
 #include "itkImageFileWriter.h"
 
 #include "GreedyAPI.h"
-//#include "GreedyParameters.h"
 
 int removeDirectoryRecursively(const std::string &dirname, bool bDeleteSubdirectories = true)
 {
@@ -120,7 +119,7 @@ string basename(string const& input)
 	string cutted_slash = input.substr(0, input.size() - (('/' == input[input.size() - 1]) ? 1 : 0));
 	size_t slash_pos = cutted_slash.find_last_of('/');
 	return cutted_slash.substr(string::npos == slash_pos ? 0 : slash_pos + 1);
-#endif // _WIN32
+#endif
 }
 
 bool createDir(const std::string &dir_name)
@@ -170,7 +169,7 @@ string GetStdoutFromCommand(string cmd)
 
 static void show_usage(string name)
 {
-    cerr << "Usage: " << name << " <option(s)>"
+    cerr << "Usage: " << name << " <option(s)>\n"
               << "Options:\n"
               << "\t-h,--help\t\tShow this help message\n"
               << '\n'
@@ -181,14 +180,14 @@ static void show_usage(string name)
               << "\t-o,--output [PATH to directory]\tSpecify the destination path, folder will be created if it doesn't exist.\n"
               << '\n'
               << "Optional arguments:\n"
-              << "\t-l,--landmarks [PATH to file]\tPath to the source landmarks, apply registration to these landmarks.\n\t\tMust be a csv file with x,y values starting 2nd row, 2nd line."
+              << "\t-l,--landmarks [PATH to file]\tPath to the source landmarks, apply registration to these landmarks.\n\t\tMust be a csv file with x,y values starting 2nd row, 2nd line.\n"
               << "\t-F,--FullResolution\tApply registration to the full resolution RGB images. Can take several minutes for large images, use '-S' to see quickly if the registration works.\n"
               << "\t-S,--SmallResolution\tApply registration to the small grayscale images\n"
               << "\t-r,--resample [VALUE]\tPercentage of the full resolution the images will be resampled to, used for computation.\n\t\tMust be a percentage but DO NOT add %. Default: 4%\n"
               << "\t-i,--iteration [VALUE]\tNumber of iteration used for initial brute search before affine registration.\n\t\tMust be a integer. Default: 5000.\n"
               << "\t-k,--kernel [VALUE]\tDefine size of the kernel, it will be the size of the resampled image divided by this value.\n\t\tMust be an integer. Small values will increase size of the kernel and so increase runtime.\n"
-              << "\t-t,--tmp_directory [PATH to directory]\tPATH to temporary directory, stores temporary files, folder will be created if it doesn't exist."
-              << endl;
+              << "\t-t,--tmp_directory [PATH to directory]\tPATH to temporary directory, stores temporary files, folder will be created if it doesn't exist.\n"
+              << "\t-s1,--smoothing_1 (-s2,--smoothing_2) [VALUE]\tDefine the value of the smoothing parameters for deformable registration. (s1 : 'Metric gradient regularization' and s2 : 'Warp regularization')\n\t\tMust be float or integers, default value s1 = 6 and s2 = 5.\n";
 }
 
 int main(int argc, char* argv[])
@@ -216,6 +215,8 @@ int main(int argc, char* argv[])
     string resample = "4";
     string Kernel_Divider = "40";
     string iteration = "5000";
+    string s1 = "6";
+    string s2 = "5";
 
     // executables
     string c2d_executable;
@@ -324,6 +325,24 @@ int main(int argc, char* argv[])
 					return 1;
 				}
 			}
+            if ((arg == "-s1") || (arg == "--smoothing_1")) {
+				if (i + 1 < argc) { // Make sure we aren't at the end of argv!
+					s1 = argv[++i];
+				}
+				else { // Uh-oh, there was no argument to the destination option.
+					cerr << "--smoothing_1 option requires one argument." << '\n';
+					return 1;
+				}
+			}
+            if ((arg == "-s2") || (arg == "--smoothing_2")) {
+				if (i + 1 < argc) { // Make sure we aren't at the end of argv!
+					s2 = argv[++i];
+				}
+				else { // Uh-oh, there was no argument to the destination option.
+					cerr << "--smoothing_2 option requires one argument." << '\n';
+					return 1;
+				}
+			}
 
         }
     }
@@ -334,16 +353,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    string s1 = "6";
-    string s2 = "5";
-
     cout << "Done." << '\n';
-    
-    // Prints arguments
-    
-    // cout << PATH_source << '\n';
-    // cout << PATH_target << '\n';
-    // cout << PATH_Output_DIR << '\n';
 
     cout << "Creating output and temporary directories..." << '\n';
 
@@ -578,9 +588,7 @@ int main(int argc, char* argv[])
         string command_resize_target = c2d_executable + string(" ") + PATH_small_target + string(" -pad-to ") + New_size_W + string("x") + New_size_H + string(" 0 -o ") + PATH_small_target_padded;
         string command_resize_source = c2d_executable + string(" ") + PATH_small_source + string(" -pad-to ") + New_size_W + string("x") + New_size_H + string(" 0 -o ") + PATH_small_source_padded;
       
-        //cout << "   Resizing target..." << '\n';
         system(command_resize_target.c_str());
-        //cout << "   Resizing source..." << '\n';
         system(command_resize_source.c_str());
     }
     else
@@ -800,7 +808,7 @@ int main(int argc, char* argv[])
         cout << "Apply transformation on small image took : " << duration << " secondes." << '\n';
     }
 
-    cout << "   Adaptating registration mectrics to non-padded full resolution RGB images..." << '\n';
+    cout << "Adaptating registration mectrics to non-padded full resolution RGB images..." << '\n';
     start_intermediate = chrono::system_clock::now();
     // Compute metrics for full resolution images
     // Affine
