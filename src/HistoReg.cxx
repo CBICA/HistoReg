@@ -231,6 +231,7 @@ int main(int argc, char* argv[])
     int Flag_landmarks = 0;
     int PATH_Output_Temp_provided = 0;
     int Flag_Small_Resolution = 0;
+    int Flag_PNGs = 0;
 
     cout << "Reading arguments..." << '\n';
 
@@ -343,7 +344,9 @@ int main(int argc, char* argv[])
 					return 1;
 				}
 			}
-
+            if ((arg == "-P") || (arg == "--PNG")) {
+				Flag_PNGs = 1;
+            }
         }
     }
 
@@ -372,12 +375,20 @@ int main(int argc, char* argv[])
         PATH_Output_Temp = PATH_Output + "/tmp";
     }
 
+    // NIFTIs
     string PATH_Output_niftis = PATH_Output + "/Saved_NIFTIs";
     string PATH_Output_niftis_small = PATH_Output_niftis + "/small_resolution";
     string PATH_Output_niftis_full = PATH_Output_niftis + "/full_resolution";
+
+    // metrics
     string PATH_Output_metrics = PATH_Output + "/metrics";
     string PATH_Output_metrics_small = PATH_Output_metrics + "/small_resolution";
     string PATH_Output_metrics_full = PATH_Output_metrics + "/full_resolution";
+
+    // PNGs
+    string PATH_Output_PNGs = PATH_Output + "/PNGs";
+    string PATH_Output_PNGs_small_resolution = PATH_Output_PNGs + "/small_resolution";
+    string PATH_Output_PNGs_full_resolution = PATH_Output_PNGs + "/full_resolution";
 
     // Create output folder
 	createDir(PATH_Output_DIR.c_str());
@@ -390,11 +401,20 @@ int main(int argc, char* argv[])
     if (Flag_Small_Resolution){
         createDir(PATH_Output_niftis.c_str());
         createDir(PATH_Output_niftis_small.c_str());
+        if (Flag_PNGs){
+            createDir(PATH_Output_PNGs.c_str());
+            createDir(PATH_Output_PNGs_small_resolution.c_str());
+        }
     }
     if (Flag_Full_Resolution){
         createDir(PATH_Output_niftis.c_str());
         createDir(PATH_Output_niftis_full.c_str());
+        if (Flag_PNGs){
+            createDir(PATH_Output_PNGs.c_str());
+            createDir(PATH_Output_PNGs_full_resolution.c_str());
+        }
     }
+    
 
     cout << "Done." << '\n';
 
@@ -806,6 +826,31 @@ int main(int argc, char* argv[])
         end_intermediate = chrono::system_clock::now();
         duration = chrono::duration_cast<chrono::seconds> (end_intermediate-start_intermediate).count();
         cout << "Apply transformation on small image took : " << duration << " secondes." << '\n';
+
+        // Converting to PNGs
+        if ( Flag_PNGs == 1 ){
+            start_intermediate = chrono::system_clock::now();
+
+            cout << "Converting images into PNGs..." << '\n';
+            string PATH_small_target_png = PATH_Output_PNGs_small_resolution + "/new_target.png";
+            command = c2d_executable  + " -mcs " + PATH_small_target_padded + " -foreach -type uchar -endfor -omc " + PATH_small_target_png;
+            system(command.c_str());
+            cout << "   Target done..." << '\n';
+
+            string PATH_small_source_png = PATH_Output_PNGs_small_resolution + "/new_source.png";
+            command = c2d_executable + " -mcs " + PATH_small_source_padded + " -foreach -type uchar -endfor -omc " + PATH_small_source_png;
+            system(command.c_str());
+            cout << "   Source done..." << '\n';
+
+            string PATH_small_registered_image_png = PATH_Output_PNGs_small_resolution + "/registeredImage.png";
+            command = c2d_executable + " -mcs " + PATH_small_registered_image + " -foreach -type uchar -endfor -omc " + PATH_small_registered_image_png;
+            system(command.c_str());
+            cout << "   Registered image done." << '\n';
+
+            end_intermediate = chrono::system_clock::now();
+            duration = chrono::duration_cast<chrono::seconds> (end_intermediate-start_intermediate).count();
+            cout << "Converting result to PNGs images took : " << duration << " secondes." << '\n';
+        }
     }
 
     cout << "Adaptating registration mectrics to non-padded full resolution RGB images..." << '\n';
@@ -1071,6 +1116,31 @@ int main(int argc, char* argv[])
         end_intermediate = chrono::system_clock::now();
         duration = chrono::duration_cast<chrono::seconds> (end_intermediate-start_intermediate).count();
         cout << "Apply transformation to original images took : " << duration << " secondes." << '\n';
+    
+        // Converting to PNGs
+        if ( Flag_PNGs == 1 ){
+            start_intermediate = chrono::system_clock::now();
+
+            cout << "Converting images into PNGs..." << '\n';
+            string PATH_new_target_png = PATH_Output_PNGs_full_resolution + "/new_target.png";
+            command = c2d_executable + " -mcs " + PATH_new_target + " -foreach -type uchar -endfor -omc " + PATH_new_target_png;
+            system(command.c_str());
+            cout << "   Target done..." << '\n';
+
+            string PATH_new_source_png = PATH_Output_PNGs_full_resolution + "/new_source.png";
+            command = c2d_executable + " -mcs " + PATH_new_source + " -foreach -type uchar -endfor -omc " + PATH_new_source_png;
+            system(command.c_str());
+            cout << "   Source done..." << '\n';
+
+            string PATH_registered_image_png = PATH_Output_PNGs_full_resolution + "/registeredImage.png";
+            command = c2d_executable + " -mcs " + PATH_registered_image + " -foreach -type uchar -endfor -omc " + PATH_registered_image_png;
+            system(command.c_str());
+            cout << "   Registered image done." << '\n';
+
+            end_intermediate = chrono::system_clock::now();
+            duration = chrono::duration_cast<chrono::seconds> (end_intermediate-start_intermediate).count();
+            cout << "Converting result to PNGs images took : " << duration << " secondes." << '\n';
+        }
     }
 
     cout << "Removing temporary directory..." << '\n';
