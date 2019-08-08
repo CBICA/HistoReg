@@ -3,4 +3,4 @@
 	url = https://github.com/pyushkevich/greedy.git
 [submodule "c3d"]
 	path = c3d
-	url = https://github.com/pyushkevich/c3d.git
+	url = https://github.com/CBICA/c3d.git
