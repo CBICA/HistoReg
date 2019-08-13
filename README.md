@@ -46,7 +46,8 @@ The code will perform affine and defformable registration from the moving (or so
 The -c option is to specify where the c2d executable is.
 The -l and -S option are optionnal, the first one is to apply the transformation on landmarks defined in the source image, and the second one is to apply the transformation on the resampled images to have an idea if the registration succeed or failed.
 
-After the registration completed, you should find a folder called Output/CD68_registered_to_CD4 where all the result were saved : - The output of the registration will be in the folder Output/CD68_registered_to_CD4/metrics where you will find the registration metrics computed at the resampled scale (small_resolution folder) and adapted to the original size of the images (full_resolution folder)
+After the registration completed, you should find a folder called Output/CD68_registered_to_CD4 where all the result were saved : 
+- The output of the registration will be in the folder Output/CD68_registered_to_CD4/metrics where you will find the registration metrics computed at the resampled scale (small_resolution folder) and adapted to the original size of the images (full_resolution folder)
 - The output of the -l command will be the file Output/CD68_registered_to_CD4/warped_landmarks.csv.
 - The output of the -S command will be in the folder Output/CD68_registered_to_CD4/Saved_NIFTIs/small_resolution/, the source will be called new_small_source_padded.nii.gz, the target new_small_target_padded.nii.gz and the source registered to the target small_registeredImage.nii.gz, these images will be gray-scale images and padded after the preprocessing steps detailled in our paper (you can use the -F option to apply the transformation to the original RGB images at their original scale but the running time will be way longer) 
 
