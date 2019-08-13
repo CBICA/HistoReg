@@ -4,9 +4,8 @@ This repository describes a framework for automated registration of variably-sta
 The dataset provided for the quantitative evaluation of the proposed approach was provided by the Automatic Non-rigid Histological Image Registration (ANHIR) challenge [2-6]. This challenge was a part of the IEEE International Symposium on Biomedical Imaging (ISBI) 2019 conference.
 # Build Requirements 
 
-- git
-- CMake version
-- C++ compiler (ex: make on linux)
+- CMake: 2.8.12+
+- C++ compiler: tested on GCC 4.9.2 and 7.4.0; MSVC 2015 on Windows
 - ITK
 
 # Runtime Requirements
