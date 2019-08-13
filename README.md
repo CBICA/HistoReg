@@ -25,15 +25,15 @@ git submodule update
 mkdir bin
 cd bin
 ccmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} ..
-make -j 8
+make -j8
 make install/strip # optional
 ```
 
 # Run
 
 ```bash
-./HistoReg --help : Print help
-./HistoReg -m /path/to/moving/image -f /path/to/fix/image -o /path/to/output/dir/ -c /path/to/c2d/executable : Compute registration metrics between moving and target images with the default parameters used for the ANHIR challenge, add -S or -F option to apply transformations respectively to resampled or full size images. 
+./HistoReg --help : Print help message
+./HistoReg -m /path/to/moving/image -f /path/to/fix/image -o /path/to/output/dir/ -c /path/to/c2d/executable [-OPTIONAL]
 ```
 
 ## Example
