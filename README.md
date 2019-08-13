@@ -30,7 +30,6 @@ Showing an example set of commands to download and compile HistoReg on a Linux m
 
 ```bash
 git clone https://github.com/CBICA/HistoReg.git HistoReg
-# git checkout cpp_conversion -  (Move cpp version to main ? What to do with bash version ?)
 cd HistoReg
 git submodule init 
 git submodule update
