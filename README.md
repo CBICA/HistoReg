@@ -13,25 +13,21 @@ c3d package (itksnap.org/pmwiki/pmwiki.php?n=Downloads.C3D)
 
 
 # Download and Compile
+
+Showing an example set of commands to download and compile HistoReg:
+
+
+```bash
 git clone https://github.com/CBICA/HistoReg.git HistoReg
-
-!!!!!!!
-!!!! git checkout cpp_conversion !!!! (Move cpp version to main ? What to do with bash version ?)
-!!!!!!!
-
+# git checkout cpp_conversion -  (Move cpp version to main ? What to do with bash version ?)
 cd HistoReg
-
 git submodule init 
-
 git submodule update
-
 mkdir bin
-
 cd bin
-
 ccmake ..
-
 make -j 8
+```
 
 # Run
 ./HistoReg --help : Print help
