@@ -10,7 +10,7 @@ The dataset provided for the quantitative evaluation of the proposed approach wa
 
 # Runtime Requirements
 
-- c2d from the c3d package: download [here](itksnap.org/pmwiki/pmwiki.php?n=Downloads.C3D)
+- c2d from the c3d package: download [here](http://www.itksnap.org/pmwiki/pmwiki.php?n=Downloads.C3D)
 
 # Download and Compile
 
