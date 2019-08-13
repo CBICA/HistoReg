@@ -2,6 +2,16 @@
 This repository describes a framework for automated registration of variably-stained digitized histology slices from various anatomical sites, based on a [greedy diffeomorphic registration tool](https://sites.google.com/view/greedyreg/about).
 
 The dataset provided for the quantitative evaluation of the proposed approach was provided by the Automatic Non-rigid Histological Image Registration (ANHIR) challenge [2-6]. This challenge was a part of the IEEE International Symposium on Biomedical Imaging (ISBI) 2019 conference.
+
+# Supporting Grant
+
+*EDIT*
+
+# Disclaimer
+
+- The software has been designed for research purposes only and has neither been reviewed nor approved for clinical use by the Food and Drug Administration (FDA) or by any other federal/state agency.
+- This code (excluding dependent libraries) is governed by the license provided in [here](https://www.med.upenn.edu/sbia/software-agreement.html) unless otherwise specified.
+
 # Build Requirements 
 
 - CMake: 2.8.12+
@@ -13,6 +23,8 @@ The dataset provided for the quantitative evaluation of the proposed approach wa
 - c2d from the c3d package: download [here](http://www.itksnap.org/pmwiki/pmwiki.php?n=Downloads.C3D)
 
 # Download and Compile
+
+By downloading HistoReg, you aggree to our [license](https://github.com/CBICA/HistoReg/blob/master/LICENSE).
 
 Showing an example set of commands to download and compile HistoReg on a Linux machine (analogous steps apply for Windows machines):
 
