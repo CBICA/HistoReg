@@ -14,8 +14,7 @@ c3d package (itksnap.org/pmwiki/pmwiki.php?n=Downloads.C3D)
 
 # Download and Compile
 
-Showing an example set of commands to download and compile HistoReg:
-
+Showing an example set of commands to download and compile HistoReg on a Linux machine (analogous steps apply for Windows machines):
 
 ```bash
 git clone https://github.com/CBICA/HistoReg.git HistoReg
