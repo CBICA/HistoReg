@@ -9,8 +9,9 @@ The dataset provided for the quantitative evaluation of the proposed approach wa
 - C++ compiler (ex: make on linux)
 - ITK
 
-c3d package (itksnap.org/pmwiki/pmwiki.php?n=Downloads.C3D)
+# Runtime Requirements
 
+- c3d: download [here](itksnap.org/pmwiki/pmwiki.php?n=Downloads.C3D)
 
 # Download and Compile
 
