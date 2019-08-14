@@ -1,11 +1,11 @@
 # HistoReg
-This repository describes a framework for automated registration of variably-stained digitized histology slices from various anatomical sites, based on a [greedy diffeomorphic registration tool](https://sites.google.com/view/greedyreg/about).
+This repository describes a framework [REF] for automated registration of variably-stained digitized histology slices from various anatomical sites, based on a [greedy diffeomorphic registration tool](https://sites.google.com/view/greedyreg/about).
 
 The dataset provided for the quantitative evaluation of the proposed approach was provided by the Automatic Non-rigid Histological Image Registration (ANHIR) challenge [2-6]. This challenge was a part of the IEEE International Symposium on Biomedical Imaging (ISBI) 2019 conference.
 
 # Supporting Grant
 
-*EDIT*
+This work is partly supported by the National Institutes of Health under grant award numbers NIH/NCI/ITCR:U24-CA189523, NIH/NIBIB:R01EB017255, NIH/NIA:R01AG056014, and NIH/NIA:P30AG010124.
 
 # Disclaimer
 
@@ -24,9 +24,9 @@ The dataset provided for the quantitative evaluation of the proposed approach wa
 
 # Download and Compile
 
-By downloading HistoReg, you aggree to our [license](https://www.med.upenn.edu/sbia/software-agreement.html).
+By downloading HistoReg, you agree to our [license](https://www.med.upenn.edu/sbia/software-agreement.html).
 
-Showing an example set of commands to download and compile HistoReg on a Linux machine (analogous steps apply for Windows machines):
+Showing an example set of commands to download and compile HistoReg on a Linux machine:
 
 ```bash
 git clone https://github.com/CBICA/HistoReg.git HistoReg
@@ -36,6 +36,24 @@ git submodule update
 mkdir bin
 cd bin
 ccmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} ..
+make -j8
+make install/strip # optional
+```
+
+Showing an example set of commands to download and compile HistoReg on a Windows machine:
+
+```bash
+git clone https://github.com/CBICA/HistoReg.git HistoReg
+cd HistoReg
+git submodule init 
+git submodule update
+mkdir bin
+cd bin
+cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} ..
+
+
+#need instructions for ITK path here
+
 make -j8
 make install/strip # optional
 ```
