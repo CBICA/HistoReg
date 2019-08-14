@@ -43,30 +43,34 @@ make install/strip # optional
 # Run
 
 ```bash
-./HistoReg --help : Print help message
-./HistoReg -m /path/to/moving/image -f /path/to/fix/image -o /path/to/output/dir/ -c /path/to/c2d/executable [-OPTIONAL]
+${installDir}/bin/HistoReg --help : Print help message
+${installDir}/bin/HistoReg -m /path/to/moving/image -f /path/to/fix/image -o /path/to/output/dir/ -c /path/to/c2d/executable [-OPTIONAL]
 ```
 
 ## Example
 
 From the HistoReg directory, run :
 ```bash
-bin/HistoReg -m Data/Images/CD68.jpg -f Data/Images/CD4.jpg -c /path/to/c2d/executable  -o Output/ -l Data/Landmarks/CD68.csv -S
+${installDir}/bin/HistoReg -m ${HistoReg_source}/Data/Images/CD68.jpg -f ${HistoReg_source}/Data/Images/CD4.jpg -c /path/to/c2d/executable  -o Output/ -l ${HistoReg_source}/Data/Landmarks/CD68.csv -S
 ```
-The code will perform affine and defformable registration from the moving (or source) image CD68.jpg (-m option) to the fixed ( or target) image CD4.jpg (-f option) and will store the result in the Output/ directory (-o option). 
+The code will perform affine and defformable registration from the moving (or source) image CD68.jpg (`-m` option) to the fixed ( or target) image CD4.jpg (`-f` option) and will store the result in the Output/ directory (`-o` option). 
 
-The -c option is to specify where the c2d executable is.
+The `-c` option is to specify where the c2d executable is.
 
-The -l and -S option are optionnal, the first one is to apply the transformation on landmarks defined in the source image, and the second one is to apply the transformation on the resampled images to have an idea if the registration succeed or failed.
+The `-l` and `-S` option are optionnal, the first one is to apply the transformation on landmarks defined in the source image, and the second one is to apply the transformation on the resampled images to have an idea if the registration succeed or failed.
 
 After the registration completed, you should find a folder called Output/CD68_registered_to_CD4 where all the result were saved : 
 - The output of the registration will be in the folder Output/CD68_registered_to_CD4/metrics where you will find the registration metrics computed at the resampled scale (small_resolution folder) and adapted to the original size of the images (full_resolution folder)
-- The output of the -l command will be the file Output/CD68_registered_to_CD4/warped_landmarks.csv.
-- The output of the -S command will be in the folder Output/CD68_registered_to_CD4/Saved_NIFTIs/small_resolution/, the source will be called new_small_source_padded.nii.gz, the target new_small_target_padded.nii.gz and the source registered to the target small_registeredImage.nii.gz, these images will be gray-scale images and padded after the preprocessing steps detailled in our paper (you can use the -F option to apply the transformation to the original RGB images at their original scale but the running time will be way longer) 
+- The output of the `-l` command will be the file `Output/CD68_registered_to_CD4/warped_landmarks.csv`.
+- The output of the `-S` command will be in the folder `Output/CD68_registered_to_CD4/Saved_NIFTIs/small_resolution/`, the source will be called `new_small_source_padded.nii.gz`, the target `new_small_target_padded.nii.gz` and the source registered to the target `small_registeredImage.nii.gz`, these images will be gray-scale images and padded after the preprocessing steps detailled in our paper (you can use the -F option to apply the transformation to the original RGB images at their original scale but the running time will be way longer) 
 
-To check if the registration worked, you can overlay these two images : new_small_target_padded.nii.gz and small_registeredImage.nii.gz, the two images should be perfectly aligned. If you don't have a software to visualize these images, I strongly recommand to use itksnap which was used for this project (download [here](http://www.itksnap.org/pmwiki/pmwiki.php?n=Downloads.SNAP3)).
+To check if the registration worked, you can overlay these two images: 
+- `new_small_target_padded.nii.gz`
+- `small_registeredImage.nii.gz`
 
-You can then compare the warped landmarks (Output/CD68_registered_to_CD4/warped_landmarks.csv) with the landmarks defined in the target space (Data/Landmarks/CD4.csv), these landmarks should be very close (from a different of a few pixels to a few tenth of pixels, which is very small compared to the original images sizes).
+The two images should be perfectly aligned. If you don't have a software to visualize these images, one viewer that can be used is ITK-SNAP, which was used for this project (download [here](http://www.itksnap.org/pmwiki/pmwiki.php?n=Downloads.SNAP3)).
+
+You can then compare the warped landmarks (`Output/CD68_registered_to_CD4/warped_landmarks.csv`) with the landmarks defined in the target space (`Data/Landmarks/CD4.csv`), these landmarks should be very close (from a different of a few pixels to a few tenth of pixels, which is very small compared to the original images sizes).
 
 # References
 [1] J. Borovec, A. Munoz-Barrutia, J. Kybic, "Benchmarking of Image Registration Methods for Differently Stained Histological Slides," 25th IEEE International Conference on Image Processing (ICIP), 2018. DOI: 10.1109/icip.2018.8451040
