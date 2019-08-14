@@ -4,7 +4,7 @@
 
 SET( ITK_DEPENDENCIES )
 
-SET( ITK_DEPENDS OpenCV )
+#SET( ITK_DEPENDS OpenCV )
 
 IF( MSVC )
   #SET( EXTRA_WINDOWS_OPTIONS -DModule_SCIFIO:BOOL=ON )
@@ -17,8 +17,8 @@ SET(CMAKE_CXX_STANDARD_REQUIRED YES)
 
 ExternalProject_Add( 
   ITK
-  DEPENDS ${ITK_DEPENDS}
-  URL https://github.com/InsightSoftwareConsortium/ITK/archive/v4.13.1.zip
+  #DEPENDS ${ITK_DEPENDS}
+  URL https://github.com/InsightSoftwareConsortium/ITK/archive/v4.13.2.zip
   #GIT_REPOSITORY ${git_protocol}://itk.org/ITK.git #  url from where to download
   #GIT_TAG v4.13.0
   SOURCE_DIR ITK-source
@@ -26,7 +26,7 @@ ExternalProject_Add(
   UPDATE_COMMAND ""
   PATCH_COMMAND ""
   #BUILD_COMMAND ""
-  INSTALL_COMMAND ""
+  INSTALL_COMMAND cmake -E echo "Skipping install step."
   CMAKE_GENERATOR ${gen}
   CMAKE_ARGS
     ${ep_common_args}   
@@ -52,7 +52,7 @@ ExternalProject_Add(
     ${EXTRA_WINDOWS_OPTIONS}
     #-DITK_LEGACY_REMOVE:BOOL=ON 
     -DModule_ITKVideoBridgeOpenCV:BOOL=ON # [OPENCV] dependency
-    -DOpenCV_DIR:PATH=${OpenCV_DIR} # [OPENCV] dependency
+    #-DOpenCV_DIR:PATH=${OpenCV_DIR} # [OPENCV] dependency
     #-DModule_ITKVtkGlue:BOOL=ON # [VTK] dependency
     #-DVTK_DIR:PATH=${VTK_DIR} # [VTK] dependency
     -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE} # toggle for type of build if something different that 
