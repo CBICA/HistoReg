@@ -23,6 +23,15 @@ FIND_PACKAGE(ITK)
     INCLUDE( ${PROJECT_SOURCE_DIR}/cmake_modules/Superbuild.cmake )
     return()
 
+  ELSE()
+
+    SET( ITK_DIR "${PROJECT_BINARY_DIR}/ITK-build/" CACHE STRING "ITK_DIR Path for use in other builds" FORCE )
+    IF (APPLE) 
+      SET( ENV{CMAKE_PREFIX_PATH} "${PROJECT_BINARY_DIR}/ITK-build/:$ENV{CMAKE_PREFIX_PATH}" CACHE PATH "" FORCE )
+    ELSE()
+      SET( ENV{CMAKE_PREFIX_PATH} "${PROJECT_BINARY_DIR}/ITK-build/:$ENV{CMAKE_PREFIX_PATH}" CACHE PATH "" FORCE )
+    ENDIF()
+
   ENDIF()
 #ENDIF()
 
