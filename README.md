@@ -24,7 +24,7 @@ This work is partly supported by the National Institutes of Health under grant a
 
 # Download and Compile
 
-By downloading HistoReg, you aggree to our [license](https://www.med.upenn.edu/sbia/software-agreement.html).
+By downloading HistoReg, you agree to our [license](https://www.med.upenn.edu/sbia/software-agreement.html).
 
 Showing an example set of commands to download and compile HistoReg on a Linux machine (analogous steps apply for Windows machines):
 
