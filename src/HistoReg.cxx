@@ -469,8 +469,10 @@ int main(int argc, char* argv[])
     chrono::time_point<chrono::system_clock> start_intermediate, end_intermediate;
     start_intermediate = chrono::system_clock::now();
 
+    // Compute smoothing that need to be applied before resampling : If 4% => new_size = Original_size / 25 => Kernel : 25 / 2 = 12vox
     int smoothing = 100/(2*stoi(resample));
 
+    // Resampling c2d command.
     string Resampling_command = "-smooth-fast " + to_string(smoothing) + "x" + to_string(smoothing) + "vox -resample " + resample + "% -spacing 1x1mm -orient LP -origin 0x0mm -o";
 
     string PATH_small_target = PATH_Output_Temp + string("/new_small_target.nii.gz");
@@ -535,7 +537,6 @@ int main(int argc, char* argv[])
         kernel = kernel_W;
     }
 
-    // Create the command to get the intensites of the corners
     int Size_W_minus_kernel_target = stoi(Size_small_target_W) - kernel;
     int Size_H_minus_kernel_target = stoi(Size_small_target_H) - kernel;
 
@@ -546,11 +547,16 @@ int main(int argc, char* argv[])
 	grep = " | grep \" 1 \"";
 #endif
 
+    // We want to pad with intensity as close as the background as possible.
+    // Extract mean and std of the intensities of the background (4 square of the size of the kernel at each corners)
+    
+    // Create the command to get the intensites of the corners
 	string Four_corners_command = c2d_executable + string(" ") + PATH_small_target + string(" -dup -cmv -popas Y -popas X -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c00 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c01 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c11 -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c10 -push c00 -push c01 -push c11 -push c10 -add -add -add -lstat" + grep);
 
+    // run command and get output
     string stats_target = GetStdoutFromCommand(Four_corners_command);
 
-    // Replace multiple consecutive space in the string by only one
+    // Replace multiple consecutive space in the string by only one (this is needed because of how the ouput of the c2d command is)
     string::iterator new_end = unique(stats_target.begin(), stats_target.end(), BothAreSpaces);
     stats_target.erase(new_end, stats_target.end());
 
@@ -566,8 +572,10 @@ int main(int argc, char* argv[])
     int Size_W_minus_kernel_source = stoi(Size_small_source_W) - kernel;
     int Size_H_minus_kernel_source = stoi(Size_small_source_H) - kernel;
 
+    // command to get intensities
     Four_corners_command = c2d_executable + string(" ") + PATH_small_source + string(" -dup -cmv -popas Y -popas X -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c00 -push X -thresh ") + to_string(Size_W_minus_kernel_source) + string(" ") + Size_small_source_W + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c01 -push X -thresh ") + to_string(Size_W_minus_kernel_source) + string(" ") + Size_small_source_W + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_source) + string(" ") + Size_small_source_H + string(" 1 0 -times -popas c11 -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_source) + string(" ") + Size_small_source_H + string(" 1 0 -times -popas c10 -push c00 -push c01 -push c11 -push c10 -add -add -add -lstat" + grep);
 	
+    // run command and get output
 	string stats_source = GetStdoutFromCommand(Four_corners_command);
 
     // Replace multiple consecutive space by only one
@@ -582,15 +590,13 @@ int main(int argc, char* argv[])
     stats_source.erase(0,stats_source.find(delimiter) + delimiter.length());
     string std_source = stats_source.substr(0,stats_source.find(delimiter));
 
-    // Compute four kernel
+    // Computes 4 times the size of the kernel for futur padding. Pad with 4 times the size of the kernel to be sure that the ROI (tissues) is far enough from boundaries.
     int four_kernel = 4*kernel;
-
-    string New_size_H = Size_small_target_H;
-    string New_size_W = Size_small_target_W;
 
     string PATH_small_target_padded;
     string PATH_small_source_padded;
 
+    // If flag to apply transformation on small images, save these in the output directory, otherwise save them in the temporary directory
     if ( Flag_Small_Resolution == 1 ){
         PATH_small_target_padded = PATH_Output_niftis_small + string("/new_small_target_padded.nii.gz");
         PATH_small_source_padded = PATH_Output_niftis_small + string("/new_small_source_padded.nii.gz");
@@ -600,8 +606,13 @@ int main(int argc, char* argv[])
         PATH_small_source_padded = PATH_Output_Temp + string("/new_small_source_padded.nii.gz");
     }
 
+    string New_size_H = Size_small_target_H;
+    string New_size_W = Size_small_target_W;
+
+    // Compare source and target size and pad images to match their size
     if ( Size_small_source_H != Size_small_target_H || Size_small_source_W != Size_small_target_W )
     {
+        // Compare size of both images and keep the larger
         //cout << "   Modifying sizes..." << '\n';
         if ( Size_small_target_W < Size_small_source_W )
         {
@@ -612,6 +623,8 @@ int main(int argc, char* argv[])
             New_size_H = Size_small_source_H;
         }
 
+	    // First padding with zeros.
+	    // pad images to the desired size with zeros, if one is already of the desired size the command will not modify it
         //cout << "   New size is : " << New_size_W << "x" << New_size_H << '\n';
 
         string command_resize_target = c2d_executable + string(" ") + PATH_small_target + string(" -pad-to ") + New_size_W + string("x") + New_size_H + string(" 0 -o ") + PATH_small_target_padded;
@@ -622,40 +635,55 @@ int main(int argc, char* argv[])
     }
     else
     {
-        // !!! DOESN'T WORK IF I NEED ORIGINAL IMAGES BEFORE PADDING
         PATH_small_target_padded = PATH_small_target;
         PATH_small_source_padded = PATH_small_source;
     }
 
-    // Pad with good intensity
+    // We don't want to pad with zeros but with intensity close to the background.
     // Target
+    // a/
+    // Create a mask separating original images from its padded part (0 for padded pixels and 1 for original ones)
+    // Then pad it with 0 by 4 times the kernel to be sure that ROI far enough from the boundaries of the images.
     string PATH_mask_target = PATH_Output_Temp + string("/mask_target.nii.gz");
     string command = c2d_executable + string(" ") + PATH_small_target_padded + string(" -thresh 1 inf 1 0 -pad ") + to_string(four_kernel) + string("x") + to_string(four_kernel) + string(" ") + to_string(four_kernel) + string("x") + to_string(four_kernel) + string(" 0 -o ") + PATH_mask_target;
     system(command.c_str());
 
+    // b/
+    // Inverse this mask (1 for padded pixels and 0 for original pixels)
+    // Replace every pixels values in the first mask by 1
+    // Then scale this mask by the mean of the intenistites in the 4 corners and add a gaussian noise of the standart deviation of this intensity.
+    // Finaly multiply both mask together so final result have intensity 0 for each pixels that belongs to the original images and intensity close to the background for each padded pixels.
     command = c2d_executable + string(" ") + PATH_mask_target + string(" -replace 0 1 1 0 -popas invmask ") + PATH_mask_target + string(" -replace 0 1 1 1 -scale ") + mean_target + string(" -noise-gaussian ") + std_target + string(" -push invmask -times -o ") + PATH_mask_target;
     system(command.c_str());
 
+    // c/
+    // Pad the target image with 0 by 4 times the size of the kernels so it has the same size as the mask we just computed.
     command = c2d_executable + string(" ") + PATH_small_target_padded + string(" -pad ") + to_string(four_kernel) + string("x") + to_string(four_kernel) + string(" ") + to_string(four_kernel) + string("x") + to_string(four_kernel) + string(" 0 -o ") + PATH_small_target_padded;
     system(command.c_str());
 
+    // d/
+    // Add mask to the image padded with zeros, so it is now padded with the mean of the intensities in the four corners + a gaussian noise of the standart deviation of this intensity.
     command = c2d_executable + string(" ") + PATH_mask_target + string(" ") + PATH_small_target_padded + string(" -add -o ") + PATH_small_target_padded;
     system(command.c_str());
 
     cout << "   Target done." << '\n';
 
 
-    // Source
+    // Same idea with the source
+    // a/
     string PATH_mask_source = PATH_Output_Temp + string("/mask_source.nii.gz");
     command = c2d_executable + string(" ") + PATH_small_source_padded + string(" -thresh 1 inf 1 0 -pad ") + to_string(four_kernel) + string("x") + to_string(four_kernel) + string(" ") + to_string(four_kernel) + string("x") + to_string(four_kernel) + string(" 0 -o ") + PATH_mask_source;
     system(command.c_str());
 
+    // b/
     command = c2d_executable + " " + PATH_mask_source + string(" -replace 0 1 1 0 -popas invmask ") + PATH_mask_source + string(" -replace 0 1 1 1 -scale ") + mean_source + string(" -noise-gaussian ") + std_source + string(" -push invmask -times -o ") + PATH_mask_source;
     system(command.c_str());
 
+    // c/
     command = c2d_executable + " " + PATH_small_source_padded + string(" -pad ") + to_string(four_kernel) + string("x") + to_string(four_kernel) + string(" ") + to_string(four_kernel) + string("x") + to_string(four_kernel) + string(" 0 -o ") + PATH_small_source_padded;
     system(command.c_str());
 
+    // d/
     command = c2d_executable + " " + PATH_mask_source + string(" ") + PATH_small_source_padded + string(" -add -o ") + PATH_small_source_padded;
     system(command.c_str());
 
@@ -866,6 +894,8 @@ int main(int argc, char* argv[])
     start_intermediate = chrono::system_clock::now();
     // Compute metrics for full resolution images
     // Affine
+    // Adapt affine matrix to full resolution, multiply translation vector of the matrix by the scale we resampled the image. For example with 4%, size of the image is divided by 25 so we multiply the translation part of the matrix by 25. 
+    // Rotation scaling and shearing stay the same.
     ifstream smallAffFile;
     string STRING;
     int factor = 100/stoi(resample);
@@ -907,28 +937,38 @@ int main(int argc, char* argv[])
     cout << "   Affine done." << '\n';
 
     // Warp 
+    // We want to apply transformation to the original images that are NOT PADDED.
+    
+    // Create a 1 intensity image of the size of the full resolution target without padding
     string PATH_mask_no_pad = PATH_Output_Temp + "/mask_no_pad.nii.gz";
     command = c2d_executable + " -background 1 -create " + Size_small_target_W + "x" + Size_small_target_H + " 1x1mm -orient LP -o " + PATH_mask_no_pad;
     system(command.c_str());
 
+
+    // Pad this image with 0 to the size of the full resolution target after padding. We have now a mask with intensity 1 for pixel that belongs to the original target image and intensity 0 for pixels that belogns to the padded part of the image.
     string PATH_mask_padded = PATH_Output_Temp + "/mask_padded.nii.gz";
     command = c2d_executable + " " + PATH_mask_no_pad + " -pad-to " + Size_small_target_padded_W + "x" + Size_small_target_padded_H + " 0 -o " + PATH_mask_padded;
     system(command.c_str());
 
+    // Change origin of the mask so it matches the one of the full resolution warp image. 
     command = c2d_executable + " " + PATH_mask_padded + " -origin 0x0mm -o " + PATH_mask_padded;
     system(command.c_str());
 
+    // Change origin of the mask so it matches the one of the full resolution warp image. 
     command = c2d_executable + " -mcs " + PATH_small_warp + " -origin 0x0mm -omc " +  PATH_small_warp;
     system(command.c_str());
 
+    // Multiply the mask and the full resolution warp image to force to 0 every value in the padded part of the warp image.
     string PATH_small_warp_no_pad = PATH_Output_Temp + "/small_warp_no_pad.nii.gz";
     command = c2d_executable + " -mcs " + PATH_mask_padded + " -popas mask -mcs " + PATH_small_warp + " -foreach -push mask -times -endfor -omc " + PATH_small_warp_no_pad;
     system(command.c_str());
 
+    // trim the warp image to remove every pixels with intensity 0 that are on the border of the image, ie every pixels that belongs to the padded part of the warp image.
     string PATH_small_warp_no_pad_trim = PATH_Output_Temp + "/small_warp_no_pad_trim.nii.gz";
     command = c2d_executable + " -mcs " + PATH_small_warp_no_pad + " -foreach -trim 0vox -endfor -omc " + PATH_small_warp_no_pad_trim;
     system(command.c_str());
 
+    // resample warp to original image dimension and scale it with the scale we resampled the image to. (the warp image is a matrix that contains a translation vector for each pixel of the target image, we need to scale this translation to the new resolution as we did for the affine matrix)
     string PATH_big_warp = PATH_Output_metrics_full + "/big_warp.nii.gz";
     command = c2d_executable + " -mcs " + PATH_small_warp_no_pad_trim + " -foreach -resample " + Size_original_target_W + "x" + Size_original_target_H + " -scale " + to_string(factor) + " -spacing 1x1mm -origin 0x0mm -endfor -omc " + PATH_big_warp;
     system(command.c_str());
@@ -942,6 +982,7 @@ int main(int argc, char* argv[])
         cout << "   Apply transformation to landmarks..." << '\n';
         start_intermediate = chrono::system_clock::now();
 
+        // read landmarks
         ifstream data(PATH_landmarks);
         string line;
         vector<vector<string>> CSV;
@@ -975,6 +1016,7 @@ int main(int argc, char* argv[])
             CSV_small.push_back(ROW_small);
         }
 
+        // Save converted landmarks to a csv file
         string PATH_small_landmarks = PATH_Output_Temp + "/lm_small_source.csv";
         ofstream myfile;
         myfile.precision(numeric_limits<float>::digits10);
@@ -1021,7 +1063,7 @@ int main(int argc, char* argv[])
         // Run
         GreedyRunner<2, double>::Run(param_lm);
 
-        // Convert small landmarks to full resolution
+        // Read landmarks after transformation
         ifstream data2(PATH_small_warped_landmarks);
         vector<vector<string>> CSV_small_warped;
 
@@ -1036,6 +1078,7 @@ int main(int argc, char* argv[])
             CSV_small_warped.push_back(ROW);
         }
 
+        // Convert small landmarks to full resolution
         vector<vector<float>> CSV_warped;
         for ( unsigned i = 0; i < CSV_small_warped.size(); i++){
             vector<float> ROW;
@@ -1051,6 +1094,7 @@ int main(int argc, char* argv[])
             CSV_warped.push_back(ROW);
         }
 
+        // Save converted landmarks to a csv file
         string PATH_warped_landmarks = PATH_Output + "/warped_landmarks.csv";
         ofstream myfile_2;
         myfile_2.precision(numeric_limits<float>::digits10);
