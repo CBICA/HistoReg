@@ -16,7 +16,6 @@ This work is partly supported by the National Institutes of Health under grant a
 
 - CMake: 2.8.12+
 - C++ compiler: tested on GCC 4.9.2 and 7.4.0; MSVC 2015 on Windows
-- ITK
 
 # Runtime Requirements
 
@@ -35,8 +34,10 @@ git submodule init
 git submodule update
 mkdir bin
 cd bin
-ccmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} ..
-make -j8
+cmake .. # this will build ITK as HistoReg needs
+make -j # multi-threaded compilation: use 'make -j${N}' to specify number of threads to use
+cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} .. # this is for HistoReg
+make -j # multi-threaded compilation: use 'make -j${N}' to specify number of threads to use
 make install/strip # optional
 ```
 
