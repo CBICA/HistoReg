@@ -51,7 +51,7 @@ ${installDir}/bin/HistoReg -m /path/to/moving/image -f /path/to/fix/image -o /pa
 
 From the HistoReg directory, run :
 ```bash
-${installDir}/bin/HistoReg -m ${HistoReg_source}/Data/Images/CD68.jpg -f ${HistoReg_source}/Data/Images/CD4.jpg -c /path/to/c2d/executable  -o Output/ -l ${HistoReg_source}/Data/Landmarks/CD68.csv -S
+${installDir}/bin/HistoReg -m ${HistoReg_source}/Data/Images/CD68.jpg -f ${HistoReg_source}/Data/Images/CD4.jpg -c /path/to/c2d/executable  -o ${HistoReg_source}/Data/Output/ -l ${HistoReg_source}/Data/Landmarks/CD68.csv -S
 ```
 The code will perform affine and defformable registration from the moving (or source) image CD68.jpg (`-m` option) to the fixed ( or target) image CD4.jpg (`-f` option) and will store the result in the Output/ directory (`-o` option). 
 
