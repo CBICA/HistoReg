@@ -5,7 +5,7 @@ The dataset provided for the quantitative evaluation of the proposed approach wa
 
 # Supporting Grant
 
-This work is partly supported by the National Institutes of Health under grant award numbers NIH/NCI/ITCR:U24-CA189523, R01EB017255, R01AG056014, and P30AG010124.
+This work is partly supported by the National Institutes of Health under grant award numbers NIH/NCI/ITCR:U24-CA189523, NIH/NIBIB:R01EB017255, NIH/NIA:R01AG056014, and NIH/NIA:P30AG010124.
 
 # Disclaimer
 
