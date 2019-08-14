@@ -24,7 +24,7 @@ The dataset provided for the quantitative evaluation of the proposed approach wa
 
 # Download and Compile
 
-By downloading HistoReg, you aggree to our [license](https://github.com/CBICA/HistoReg/blob/master/LICENSE).
+By downloading HistoReg, you aggree to our [license](https://www.med.upenn.edu/sbia/software-agreement.html).
 
 Showing an example set of commands to download and compile HistoReg on a Linux machine (analogous steps apply for Windows machines):
 
