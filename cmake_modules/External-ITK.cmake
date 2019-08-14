@@ -51,7 +51,7 @@ ExternalProject_Add(
     -DCMAKE_DEBUG_POSTFIX:STRING=d
     ${EXTRA_WINDOWS_OPTIONS}
     #-DITK_LEGACY_REMOVE:BOOL=ON 
-    -DModule_ITKVideoBridgeOpenCV:BOOL=ON # [OPENCV] dependency
+    #-DModule_ITKVideoBridgeOpenCV:BOOL=ON # [OPENCV] dependency
     #-DOpenCV_DIR:PATH=${OpenCV_DIR} # [OPENCV] dependency
     #-DModule_ITKVtkGlue:BOOL=ON # [VTK] dependency
     #-DVTK_DIR:PATH=${VTK_DIR} # [VTK] dependency
