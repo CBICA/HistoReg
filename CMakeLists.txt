@@ -19,6 +19,7 @@ FIND_PACKAGE(ITK)
   IF( NOT EXISTS ${PROJECT_BINARY_DIR}/ITK-build/ITKConfig.cmake )
 
     PROJECT(${PROJECT_NAME}_Depends)
+    MESSAGE( STATUS "Starting Superbuild...")
     INCLUDE( ${PROJECT_SOURCE_DIR}/cmake_modules/Superbuild.cmake )
     return()
 
