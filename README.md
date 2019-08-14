@@ -35,7 +35,7 @@ git submodule init
 git submodule update
 mkdir bin
 cd bin
-ccmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} ..
+ccmake (or cmake) -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} ..
 make -j8
 make install/strip # optional
 ```
