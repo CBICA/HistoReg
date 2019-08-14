@@ -40,11 +40,11 @@ INCLUDE( ExternalProject )
 #MESSAGE( STATUS "Adding YAML-CPP 0.6.2 ...")
 #INCLUDE( ${PROJECT_SOURCE_DIR}/cmake_modules/External-yaml-cpp.cmake )
 
-MESSAGE( STATUS "Adding EIGEN-3.3.4 ...")
-INCLUDE( ${PROJECT_SOURCE_DIR}/cmake_modules/External-Eigen.cmake )
+#MESSAGE( STATUS "Adding EIGEN-3.3.4 ...")
+#INCLUDE( ${PROJECT_SOURCE_DIR}/cmake_modules/External-Eigen.cmake )
 
-MESSAGE( STATUS "Adding OpenCV-3.4.1 ...")
-INCLUDE( ${PROJECT_SOURCE_DIR}/cmake_modules/External-OpenCV.cmake )
+#MESSAGE( STATUS "Adding OpenCV-3.4.1 ...")
+#INCLUDE( ${PROJECT_SOURCE_DIR}/cmake_modules/External-OpenCV.cmake )
 
-MESSAGE( STATUS "Adding ITK-4.13.1 ...")
+MESSAGE( STATUS "Adding ITK-4.13.2 ...")
 INCLUDE( ${PROJECT_SOURCE_DIR}/cmake_modules/External-ITK.cmake )
