@@ -39,6 +39,7 @@ FIND_PACKAGE(ITK)
 FIND_PACKAGE( ITK REQUIRED )
 INCLUDE( ${ITK_USE_FILE} )
 
+ADD_DEFINITIONS(-DCONVERT3D_BUILD_AS_SUBPROJECT)
 add_subdirectory(c3d)
 
 # add greedy files to compilation
