@@ -19,10 +19,6 @@ This work is partly supported by the National Institutes of Health under grant a
 - CMake: 2.8.12+
 - C++ compiler: tested on GCC 4.9.2 and 7.4.0; MSVC 2015 on Windows
 
-# Runtime Requirements
-
-- c2d from the c3d package: download [here](http://www.itksnap.org/pmwiki/pmwiki.php?n=Downloads.C3D)
-
 # Download and Compile
 
 By downloading HistoReg, you agree to our [license](https://www.med.upenn.edu/sbia/software-agreement.html).
