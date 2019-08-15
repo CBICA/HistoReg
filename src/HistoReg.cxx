@@ -16,6 +16,37 @@
 
 #include "GreedyAPI.h"
 
+//! returns the executable path
+std::string getExecutablePath()
+{
+#if defined(_WIN32)
+  //! Initialize pointers to file and user names
+  char path[FILENAME_MAX];
+  GetModuleFileNameA(NULL, path, FILENAME_MAX);
+  //_splitpath_s(filename, NULL, NULL, NULL, NULL, filename, NULL, NULL, NULL);
+#elif __APPLE__
+  char path[PATH_MAX];
+  uint32_t size = PATH_MAX - 1;
+  if (path != NULL)
+  {
+    if (_NSGetExecutablePath(path, &size) != 0)
+    {
+      std::cerr << "[getFullPath()] Error during getting full path..";
+    }
+  }
+#else
+  //! Initialize pointers to file and user names
+  char path[PATH_MAX];
+  if (::readlink("/proc/self/exe", path, sizeof(path) - 1) == -1)
+    //path = dirname(path);
+    std::cerr << "[getFullPath()] Error during getting full path..";
+#endif
+
+  std::string return_string = std::string(path);
+  path[0] = '\0';
+  return return_string;
+}
+
 int removeDirectoryRecursively(const std::string &dirname, bool bDeleteSubdirectories = true)
 {
 #if defined(_WIN32)
@@ -357,12 +388,13 @@ int main(int argc, char* argv[])
     }
 
     if ( c2d_executable_provided == 0 ){
-        cout << "test" << '\n';
+        string PATH_exe = getExecutablePath();
+        string PATH_bin = PATH_exe.substr(0,PATH_exe.length()-9);
+        c2d_executable = PATH_bin + "/c3d/c2d"
         #ifdef WIN32
-            c2d_executable="c2d.exe";
-        #else
-            c2d_executable="c2d";
+            +".exe"
         #endif
+        ;
     }
 
     cout << "Done." << '\n';
