@@ -50,8 +50,12 @@ git submodule init
 git submodule update
 mkdir bin
 cd bin
-cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} ..
-
+cmake .. # this will build ITK as HistoReg needs OR analogous step via cmake-gui
+cmake --build . --target ALL_BUILD # or invoke this project from Visual Studio
+cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} .. # this is for HistoReg
+cmake --build . --target ALL_BUILD # or invoke this project from Visual Studio
+cmake --build . --target INSTALL # [OPTIONAL] or invoke this project from Visual Studio
+```
 
 #need instructions for ITK path here
 
