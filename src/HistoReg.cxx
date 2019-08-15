@@ -389,12 +389,13 @@ int main(int argc, char* argv[])
 
     if ( c2d_executable_provided == 0 ){
         string PATH_exe = getExecutablePath();
-        string PATH_bin = PATH_exe.substr(0,PATH_exe.length()-9);
-        c2d_executable = PATH_bin + "/c3d/c2d"
-        #ifdef WIN32
-            +".exe"
+		#ifdef WIN32
+			string PATH_bin = PATH_exe.substr(0,PATH_exe.length()-18);
+			c2d_executable = PATH_bin + "c3d\\Debug\\c2d.exe";
+		#else
+			string PATH_bin = PATH_exe.substr(0,PATH_exe.length()-9);
+			c2d_executable = PATH_bin + "/c3d/c2d";
         #endif
-        ;
     }
 
     cout << "Done." << '\n';
