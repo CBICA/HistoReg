@@ -5,9 +5,13 @@ The dataset provided for the quantitative evaluation of the proposed approach wa
 
 This method was ranked 2nd in this challenge ([ref](https://anhir.grand-challenge.org/Workshop-ISBI19/)).
 
-# Supporting Grant
+# Supporting Grants
 
-This work is partly supported by the National Institutes of Health under grant award numbers NIH/NCI/ITCR:U24-CA189523, NIH/NIBIB:R01EB017255, NIH/NIA:R01AG056014, and NIH/NIA:P30AG010124.
+This work is partly supported by the National Institutes of Health under the following grant award numbers 
+- NIH/NCI/ITCR:U24-CA189523
+- NIH/NIBIB:R01EB017255
+- NIH/NIA:R01AG056014
+- NIH/NIA:P30AG010124
 
 # Disclaimer
 
