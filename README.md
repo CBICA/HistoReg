@@ -25,7 +25,7 @@ This work is partly supported by the National Institutes of Health under grant a
 
 By downloading HistoReg, you agree to our [license](https://www.med.upenn.edu/sbia/software-agreement.html).
 
-Showing an example set of commands to download and compile HistoReg on a Linux machine:
+Showing an example set of commands to download and compile HistoReg on a Linux (or Windows) machine:
 
 ```bash
 git clone https://github.com/CBICA/HistoReg.git HistoReg
@@ -35,28 +35,10 @@ git submodule update
 mkdir bin
 cd bin
 cmake .. # this will build ITK as HistoReg needs
-make -j # multi-threaded compilation: use 'make -j${N}' to specify number of threads to use
+cmake --build . --target ALL_BUILD # add '-- -j${N}' to specify number of threads to use for compilation
 cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} .. # this is for HistoReg
-make -j # multi-threaded compilation: use 'make -j${N}' to specify number of threads to use
-make install/strip # optional
-```
-
-Showing an example set of commands to download and compile HistoReg on a Windows machine:
-
-```bash
-git clone https://github.com/CBICA/HistoReg.git HistoReg
-cd HistoReg
-git submodule init 
-git submodule update
-mkdir bin
-cd bin
-cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} ..
-
-
-#need instructions for ITK path here
-
-make -j8
-make install/strip # optional
+cmake --build . --target ALL_BUILD # add '-- -j${N}' to specify number of threads to use for compilation
+cmake --build . --target INSTALL # optional
 ```
 
 # Run
