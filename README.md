@@ -3,6 +3,8 @@ This repository describes a framework [REF] for automated registration of variab
 
 The dataset provided for the quantitative evaluation of the proposed approach was provided by the Automatic Non-rigid Histological Image Registration (ANHIR) challenge [2-6]. This challenge was a part of the IEEE International Symposium on Biomedical Imaging (ISBI) 2019 conference.
 
+This method was ranked 2nd in this challenge [REF](https://anhir.grand-challenge.org/Workshop-ISBI19/).
+
 # Supporting Grant
 
 This work is partly supported by the National Institutes of Health under grant award numbers NIH/NCI/ITCR:U24-CA189523, NIH/NIBIB:R01EB017255, NIH/NIA:R01AG056014, and NIH/NIA:P30AG010124.
@@ -49,6 +51,8 @@ ${installDir}/bin/HistoReg -m /path/to/moving/image -f /path/to/fix/image -o /pa
 ```
 
 ## Example
+
+This example uses a pair of images from the trainig dataset provided by the ANHIR challenge organizers, you can download the full dataset on the challenge's website [here](https://anhir.grand-challenge.org/Download/).
 
 From the HistoReg directory, run :
 ```bash
