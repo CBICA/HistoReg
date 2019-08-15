@@ -46,8 +46,8 @@ cmake --build . --target INSTALL # [OPTIONAL] or invoke this project from Visual
 # Run
 
 ```bash
-${installDir}/bin/HistoReg --help : Print help message
-${installDir}/bin/HistoReg -m /path/to/moving/image -f /path/to/fix/image -o /path/to/output/dir/ -c /path/to/c2d/executable [-OPTIONAL]
+${installDir}/HistoReg --help : Print help message
+${installDir}/HistoReg -m /path/to/moving/image -f /path/to/fix/image -o /path/to/output/dir/ [-OPTIONAL]
 ```
 
 ## Example
@@ -56,11 +56,9 @@ This example uses a pair of images from the trainig dataset provided by the ANHI
 
 From the HistoReg directory, run :
 ```bash
-${installDir}/bin/HistoReg -m ${HistoReg_source}/Data/Images/CD68.jpg -f ${HistoReg_source}/Data/Images/CD4.jpg -c /path/to/c2d/executable  -o ${HistoReg_source}/Data/Output/ -l ${HistoReg_source}/Data/Landmarks/CD68.csv -S
+${installDir}/HistoReg -m ${HistoReg_source}/Data/Images/CD68.jpg -f ${HistoReg_source}/Data/Images/CD4.jpg -o ${HistoReg_source}/Data/Output/ -l ${HistoReg_source}/Data/Landmarks/CD68.csv -S
 ```
 The code will perform affine and defformable registration from the moving (or source) image CD68.jpg (`-m` option) to the fixed ( or target) image CD4.jpg (`-f` option) and will store the result in the Output/ directory (`-o` option). 
-
-The `-c` option is to specify where the c2d executable is.
 
 The `-l` and `-S` option are optionnal, the first one is to apply the transformation on landmarks defined in the source image, and the second one is to apply the transformation on the resampled images to have an idea if the registration succeed or failed.
 
