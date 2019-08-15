@@ -27,7 +27,7 @@ This work is partly supported by the National Institutes of Health under grant a
 
 By downloading HistoReg, you agree to our [license](https://www.med.upenn.edu/sbia/software-agreement.html).
 
-Showing an example set of commands to download and compile HistoReg on a Linux or Windows (via PowerShell) machine:
+Showing an example set of commands to download and compile HistoReg on a Linux (Windows equivalent in comments) machine:
 
 ```bash
 git clone https://github.com/CBICA/HistoReg.git HistoReg
@@ -37,10 +37,10 @@ git submodule update
 mkdir bin
 cd bin
 cmake .. # this will build ITK as HistoReg needs OR analogous step via cmake-gui; an example to specify the generator on Windows: 'cmake -G "Visual Studio 12 2015 Win64" ..'
-cmake --build . --target ALL_BUILD # or invoke this project from Visual Studio
+make # WINDOWS: "cmake --build . --target ALL_BUILD" or invoke this project from Visual Studio
 cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} .. # this is for HistoReg; an example to specify the generator on Windows: 'cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} -G "Visual Studio 12 2015 Win64" ..'
-cmake --build . --target ALL_BUILD # or invoke this project from Visual Studio
-cmake --build . --target INSTALL # [OPTIONAL] or invoke this project from Visual Studio
+make # WINDOWS: "cmake --build . --target ALL_BUILD" or invoke this project from Visual Studio
+make install/strip # WINDOWS: "cmake --build . --target INSTALL" or invoke this project from Visual Studio
 ```
 
 # Run
