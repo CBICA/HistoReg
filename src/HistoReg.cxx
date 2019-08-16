@@ -390,11 +390,11 @@ int main(int argc, char* argv[])
     if ( c2d_executable_provided == 0 ){
         string PATH_exe = getExecutablePath();
 		#ifdef WIN32
-			string PATH_bin = PATH_exe.substr(0,PATH_exe.length()-18);
-			c2d_executable = PATH_bin + "c3d\\Debug\\c2d.exe";
+			string PATH_bin = PATH_exe.substr(0,PATH_exe.length()-16);
+			c2d_executable = PATH_bin + "bin\\c2d.exe";
 		#else
 			string PATH_bin = PATH_exe.substr(0,PATH_exe.length()-9);
-			c2d_executable = PATH_bin + "/c3d/c2d";
+			c2d_executable = PATH_bin + "/bin/c2d";
         #endif
     }
 
@@ -588,7 +588,7 @@ int main(int argc, char* argv[])
 
     // run command and get output
     string stats_target = GetStdoutFromCommand(Four_corners_command);
-
+	
     // Replace multiple consecutive space in the string by only one (this is needed because of how the ouput of the c2d command is)
     string::iterator new_end = unique(stats_target.begin(), stats_target.end(), BothAreSpaces);
     stats_target.erase(new_end, stats_target.end());
@@ -600,7 +600,7 @@ int main(int argc, char* argv[])
     string mean_target = stats_target.substr(0,stats_target.find(delimiter));
     stats_target.erase(0,stats_target.find(delimiter) + delimiter.length());
     string std_target = stats_target.substr(0,stats_target.find(delimiter));
-
+	
     // Same with source
     int Size_W_minus_kernel_source = stoi(Size_small_source_W) - kernel;
     int Size_H_minus_kernel_source = stoi(Size_small_source_H) - kernel;
@@ -679,8 +679,9 @@ int main(int argc, char* argv[])
     // Then pad it with 0 by 4 times the kernel to be sure that ROI far enough from the boundaries of the images.
     string PATH_mask_target = PATH_Output_Temp + string("/mask_target.nii.gz");
     string command = c2d_executable + string(" ") + PATH_small_target_padded + string(" -thresh 1 inf 1 0 -pad ") + to_string(four_kernel) + string("x") + to_string(four_kernel) + string(" ") + to_string(four_kernel) + string("x") + to_string(four_kernel) + string(" 0 -o ") + PATH_mask_target;
-    system(command.c_str());
 
+	system(command.c_str());
+	
     // b/
     // Inverse this mask (1 for padded pixels and 0 for original pixels)
     // Replace every pixels values in the first mask by 1
