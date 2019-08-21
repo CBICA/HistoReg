@@ -42,6 +42,9 @@ INCLUDE( ${ITK_USE_FILE} )
 ADD_DEFINITIONS(-DCONVERT3D_BUILD_AS_SUBPROJECT)
 add_subdirectory(c3d)
 
+# ensure the mode is taken in properly for gcc
+SET( CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" )
+
 # add greedy files to compilation
 FILE( GLOB_RECURSE GREEDY_HEADERS "${PROJECT_SOURCE_DIR}/greedy/src/*.h" )
 FILE( GLOB_RECURSE GREEDY_SOURCES_TEMPLATES_1 "${PROJECT_SOURCE_DIR}/greedy/src/*.hxx" )
