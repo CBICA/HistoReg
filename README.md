@@ -25,7 +25,7 @@ This work is partly supported by the National Institutes of Health under grant a
 
 By downloading HistoReg, you agree to our [license](https://www.med.upenn.edu/sbia/software-agreement.html).
 
-Showing an example set of commands to download and compile HistoReg on a Linux (or Windows) machine:
+Showing an example set of commands to download and compile HistoReg on a Windows (for Linux, use corresponding `make` commands) machine:
 
 ```bash
 git clone https://github.com/CBICA/HistoReg.git HistoReg
