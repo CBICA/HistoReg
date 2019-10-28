@@ -42,6 +42,21 @@ cmake --build . --target ALL_BUILD # add '-- -j${N}' to specify number of thread
 cmake --build . --target INSTALL # optional
 ```
 
+On Linux or machines using ```make``` as the generator, please follow these guidelines:
+
+```bash
+git clone https://github.com/CBICA/HistoReg.git HistoReg
+cd HistoReg
+git submodule init 
+git submodule update
+mkdir bin
+cd bin
+cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} .. # this is for HistoReg
+make # add '-j${N}' to specify number of threads to use for compilation
+make install/strip # performs installation and executable stripping
+```
+
+
 # Run
 
 ```bash
