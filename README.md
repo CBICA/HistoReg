@@ -37,6 +37,8 @@ git submodule update
 mkdir bin
 cd bin
 cmake .. # this will build ITK as HistoReg needs
+cmake --build . --target ALL_BUILD # add '-- -j${N}' to specify number of threads to use for compilation
+## wait for ITK to finish building
 cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} .. # this is for HistoReg
 cmake --build . --target ALL_BUILD # add '-- -j${N}' to specify number of threads to use for compilation
 cmake --build . --target INSTALL # optional
@@ -52,6 +54,9 @@ git submodule init
 git submodule update
 mkdir bin
 cd bin
+cmake .. # this will build ITK as HistoReg needs
+make # add '-j${N}' to specify number of threads to use for compilation
+## wait for ITK to finish building
 cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} .. # this is for HistoReg
 make # add '-j${N}' to specify number of threads to use for compilation
 make install/strip # performs installation and executable stripping
