@@ -11,7 +11,7 @@ RUN git clone https://github.com/CBICA/HistoReg.git; \
     git submodule init && git submodule update
 
 RUN cd HistoReg/bin; \
-    cmake -DITK_DIR=../CaPTk/bin/ITK-build -DCMAKE_INSTALL_PREFIX="./install/" -DBUILD_TESTING=OFF ..; \
+    cmake -DITK_DIR=../../CaPTk/bin/ITK-build -DCMAKE_INSTALL_PREFIX="./install/" -DBUILD_TESTING=OFF ..; \
     make && make install/strip; 
     #cd .. && ./scripts/captk-pkg
 
