@@ -17,10 +17,10 @@ SET(CMAKE_CXX_STANDARD_REQUIRED YES)
 
 ExternalProject_Add( 
   ITK
-  #DEPENDS ${ITK_DEPENDS}
-  URL https://github.com/InsightSoftwareConsortium/ITK/archive/v4.13.2.zip
-  #GIT_REPOSITORY ${git_protocol}://itk.org/ITK.git #  url from where to download
-  #GIT_TAG v4.13.0
+  DEPENDS ${ITK_DEPENDS}
+  # URL https://github.com/InsightSoftwareConsortium/ITK/archive/v4.13.1.zip
+  GIT_REPOSITORY https://github.com/InsightSoftwareConsortium/ITK.git #  url from where to download
+  GIT_TAG v4.13.1
   SOURCE_DIR ITK-source
   BINARY_DIR ITK-build
   UPDATE_COMMAND ""
