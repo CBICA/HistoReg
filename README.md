@@ -37,7 +37,7 @@ cmake --build . --target ALL_BUILD # add '-- -j${N}' to specify number of thread
 ## wait for ITK to finish building
 cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} .. # this is for HistoReg
 cmake --build . --target ALL_BUILD # add '-- -j${N}' to specify number of threads to use for compilation
-cmake --build . --target INSTALL # optional
+cmake --build . --target INSTALL
 ```
 
 ## Linux
