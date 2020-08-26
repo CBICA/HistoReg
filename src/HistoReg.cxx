@@ -524,6 +524,7 @@ std::string getExecutablePath()
 
 static void show_usage(string name)
 {
+  cout << "HistoReg v" << std::string(PROJECT_VERSION) << "\n\n";
     cerr << "Usage: " << name << " <option(s)>\n"
               << "Options:\n"
               << "\t-h,--help\t\tShow this help message\n"
