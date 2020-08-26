@@ -56,6 +56,8 @@ IF( NOT EXISTS "${PROJECT_SOURCE_DIR}/c3d/CMakeLists.txt" )
   OUTPUT_VARIABLE git_ver)
 ENDIF()
 
+ADD_SUBDIRECTORY(c3d)
+
 # add greedy files to compilation
 FILE( GLOB_RECURSE GREEDY_HEADERS "${PROJECT_SOURCE_DIR}/greedy/src/*.h" )
 FILE( GLOB_RECURSE GREEDY_SOURCES_TEMPLATES_1 "${PROJECT_SOURCE_DIR}/greedy/src/*.hxx" )
