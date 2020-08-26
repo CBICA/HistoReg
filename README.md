@@ -10,20 +10,16 @@ This work is partly supported by the National Institutes of Health under grant a
 # Disclaimer
 
 - The software has been designed for research purposes only and has neither been reviewed nor approved for clinical use by the Food and Drug Administration (FDA) or by any other federal/state agency.
-- This code (excluding dependent libraries) is governed by the license provided in [here](https://www.med.upenn.edu/sbia/software-agreement.html) unless otherwise specified.
+- This code (excluding dependent libraries) is governed by the license provided in [here](https://www.med.upenn.edu/cbica/software-agreement.html) unless otherwise specified.
 
 # Build Requirements 
 
 - CMake: 2.8.12+
 - C++ compiler: tested on GCC 4.9.2 and 7.4.0; MSVC 2015 on Windows
 
-# Runtime Requirements
-
-- c2d from the c3d package: download [here](http://www.itksnap.org/pmwiki/pmwiki.php?n=Downloads.C3D)
-
 # Download and Compile
 
-By downloading HistoReg, you agree to our [license](https://www.med.upenn.edu/sbia/software-agreement.html).
+By downloading HistoReg, you agree to our [license](https://www.med.upenn.edu/cbica/software-agreement.html).
 
 ## Windows
 
