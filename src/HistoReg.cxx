@@ -259,6 +259,30 @@ std::string getFullPath()
   return return_string;
 }
 
+std::string replaceString(const std::string &entireString,
+  const std::string &toReplace,
+  const std::string &replaceWith)
+{
+  std::string return_string = entireString;
+  for (size_t pos = 0;; pos += replaceWith.length())
+  {
+    pos = return_string.find(toReplace, pos);
+
+    if (pos == std::string::npos)
+      break;
+
+    return_string.erase(pos, toReplace.length());
+    return_string.insert(pos, replaceWith);
+  }
+  return return_string;
+  /*
+  if( entireString.length() < toReplace.length() )
+  std::cerr << "Length of string to search < length of string to replace. Please check.\n";
+
+  return(return_string.replace(entireString.find(toReplace), toReplace.length(), replaceWith));
+  */
+}
+
 bool splitFileName(const std::string &dataFile, std::string &path,
   std::string &baseName, std::string &extension)
 {
@@ -274,9 +298,9 @@ bool splitFileName(const std::string &dataFile, std::string &path,
   {
     if (dataFile_wrap.find(compressionFormats[i]) != std::string::npos)
     {
-      dataFile_wrap = cbica::replaceString(dataFile_wrap, compressionFormats[i], "");
+      dataFile_wrap = replaceString(dataFile_wrap, compressionFormats[i], "");
       std::string tempExt;
-      cbica::splitFileName(dataFile_wrap, path, baseName, tempExt);
+      splitFileName(dataFile_wrap, path, baseName, tempExt);
       extension = tempExt + compressionFormats[i];
     }
   }
@@ -333,7 +357,7 @@ bool splitFileName(const std::string &dataFile, std::string &path,
 #endif
         std::string(path_name);
     }
-    path = cbica::replaceString(path, "\\", "/"); // normalize path for Windows
+    path = replaceString(path, "\\", "/"); // normalize path for Windows
 
     //base name sanity check
     if (basename_var == NULL)
@@ -375,6 +399,41 @@ bool splitFileName(const std::string &dataFile, std::string &path,
 
     return true;
   }
+}
+
+//! Check for separators [Internal_Function]
+inline bool issep(char c)
+{
+#if defined(_WIN32)
+  return c == '/' || c == '\\';
+#else
+  return c == '/';
+#endif
+}
+
+//! Check for absolute path [Internal_Function]
+bool isabs(const std::string& path)
+{
+  size_t i = 0;
+#if defined(_WIN32)
+  if (path.size() > 1 && path[1] == ':') i = 2;
+#endif
+  return i < path.size() && issep(path[i]);
+}
+
+//! Joins separators based on OS [Internal_Function]
+std::string join(const std::string& base, const std::string& path)
+{
+  if (base.empty() || isabs(path))
+    return path;
+  if (issep(base[base.size() - 1]))
+    return (base + path);
+
+#if defined(_WIN32)
+  return base + '\\' + path;
+#else
+  return base + '/' + path;
+#endif
 }
 
 std::string normPath(const std::string &path)
@@ -448,7 +507,7 @@ std::string getExecutablePath()
   // #ifdef __APPLE__
   //   return "/Applications/CaPTk_1.6.2.Beta.app/Contents/MacOS/";
   // #endif
-  return cbica::normPath(path) + "/";
+  return normPath(path) + "/";
 }
 
 
