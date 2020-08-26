@@ -283,6 +283,17 @@ std::string replaceString(const std::string &entireString,
   */
 }
 
+char* constCharToChar(const std::string &input)
+{
+  char *s = new char[input.size() + 1];
+#ifdef _WIN32
+  strcpy_s(s, input.size() + 1, input.c_str());
+#else
+  std::strcpy(s, input.c_str());
+#endif
+  return s;
+}
+
 bool splitFileName(const std::string &dataFile, std::string &path,
   std::string &baseName, std::string &extension)
 {
@@ -340,8 +351,8 @@ bool splitFileName(const std::string &dataFile, std::string &path,
       }
     }
     // else // there is no extension for file
-    path_name = dirname(cbica::constCharToChar(dataFile_wrap.c_str()));
-    basename_var = basename(cbica::constCharToChar(dataFile_wrap.c_str()));
+    path_name = dirname(constCharToChar(dataFile_wrap.c_str()));
+    basename_var = basename(constCharToChar(dataFile_wrap.c_str()));
 #endif
     //path sanity check
     if (path_name == NULL)
