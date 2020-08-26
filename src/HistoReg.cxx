@@ -14,6 +14,62 @@
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
 
+#if (_WIN32)
+#define NOMINMAX
+#include <direct.h>
+#include <windows.h>
+#include <conio.h>
+#include <lmcons.h>
+#include <Shlobj.h>
+#include <filesystem>
+#include <psapi.h>
+#define GetCurrentDir _getcwd
+bool WindowsDetected = true;
+static const char  cSeparator = '\\';
+//  static const char* cSeparators = "\\/";
+#else
+#include <dirent.h>
+#include <unistd.h>
+#include <libgen.h>
+#include <limits.h>
+#include <cstring>
+#include <cstdlib>
+#include <sys/types.h>
+#include <errno.h>
+#include <ftw.h>
+#if (__APPLE__)
+#include <mach-o/dyld.h>
+#include <sys/sysctl.h>
+#include <mach/vm_statistics.h>
+#include <mach/mach_types.h>
+#include <mach/mach_init.h>
+#include <mach/mach_host.h>
+#else
+#include <sys/sysinfo.h>
+#endif
+#define GetCurrentDir getcwd
+bool WindowsDetected = false;
+static const char  cSeparator = '/';
+//  static const char* cSeparators = "/";
+#endif
+
+#include <chrono>
+#include <fstream>
+#include <stdlib.h>
+#include <stdio.h>
+#include <limits.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <exception>
+#include <typeinfo>
+#include <stdexcept>
+#include <algorithm>
+#include <string>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+#include <thread>
+
 #include "GreedyAPI.h"
 
 int removeDirectoryRecursively(const std::string &dirname, bool bDeleteSubdirectories = true)
@@ -167,6 +223,235 @@ string GetStdoutFromCommand(string cmd)
 	#endif
 }
 
+
+std::string getFullPath()
+{
+  std::string return_string;
+#if defined(_WIN32)
+  //! Initialize pointers to file and user names
+  char path[FILENAME_MAX];
+  GetModuleFileNameA(NULL, path, FILENAME_MAX);
+  //_splitpath_s(filename, NULL, NULL, NULL, NULL, filename, NULL, NULL, NULL);
+#elif __APPLE__
+  char path[PATH_MAX];
+  uint32_t size = PATH_MAX - 1;
+  if (path != NULL)
+  {
+    if (_NSGetExecutablePath(path, &size) != 0)
+    {
+      std::cerr << "[getFullPath()] Error during getting full path..";
+    }
+  }
+#else
+  //! Initialize pointers to file and user names
+  char path[PATH_MAX];
+  ssize_t count = readlink("/proc/self/exe", path, PATH_MAX);
+  if (count == -1)
+    std::cerr << "[getFullPath()] Error during getting full path..";
+  std::string appPath = std::string(path, (count > 0) ? count : 0);
+  path[0] = '\0';
+  return appPath;
+#endif
+
+  return_string = std::string(path);
+  path[0] = '\0';
+
+  return return_string;
+}
+
+bool splitFileName(const std::string &dataFile, std::string &path,
+  std::string &baseName, std::string &extension)
+{
+  std::string dataFile_wrap = dataFile;
+  std::vector< std::string > compressionFormats;
+  compressionFormats.push_back(".gz");
+  compressionFormats.push_back(".bz");
+  compressionFormats.push_back(".zip");
+  compressionFormats.push_back(".bz2");
+
+  // check for compression formats
+  for (size_t i = 0; i < compressionFormats.size(); i++)
+  {
+    if (dataFile_wrap.find(compressionFormats[i]) != std::string::npos)
+    {
+      dataFile_wrap = cbica::replaceString(dataFile_wrap, compressionFormats[i], "");
+      std::string tempExt;
+      cbica::splitFileName(dataFile_wrap, path, baseName, tempExt);
+      extension = tempExt + compressionFormats[i];
+    }
+  }
+
+  if (!path.empty() && !baseName.empty() && !extension.empty())
+  {
+    return true;
+  }
+  else
+  {
+    //! Initialize pointers to file and user names
+#if (_MSC_VER >= 1700)
+    char basename_var[FILENAME_MAX], ext[FILENAME_MAX], path_name[FILENAME_MAX], drive_letter[FILENAME_MAX];
+    //_splitpath(dataFile_wrap.c_str(), NULL, path_name, basename_var, ext);
+    _splitpath_s(dataFile.c_str(), drive_letter, FILENAME_MAX, path_name, FILENAME_MAX, basename_var, FILENAME_MAX, ext, FILENAME_MAX);
+    extension = std::string(ext);
+#else
+    char *basename_var, *path_name;
+
+    auto idx = dataFile_wrap.rfind('.');
+
+    // fun fact, replaceString(string, "", "") enters an infinite loop.
+    // can we not use std::replace? is that not an option?
+    if (extension != "")
+      dataFile_wrap = replaceString(dataFile_wrap, extension, "");
+
+    if (idx != std::string::npos)
+    {
+      extension = "." + dataFile_wrap.substr(idx + 1);
+
+      if (extension.find("/") != std::string::npos)
+        extension = "";
+      else {
+#ifndef __APPLE__
+        dataFile_wrap = replaceString(dataFile_wrap, extension, "");
+#endif
+      }
+    }
+    // else // there is no extension for file
+    path_name = dirname(cbica::constCharToChar(dataFile_wrap.c_str()));
+    basename_var = basename(cbica::constCharToChar(dataFile_wrap.c_str()));
+#endif
+    //path sanity check
+    if (path_name == NULL)
+    {
+      std::cerr << "No filename path has been detected.\n";
+      exit(EXIT_FAILURE);
+    }
+    else
+    {
+      path =
+#ifdef _WIN32
+        std::string(drive_letter) +
+#endif
+        std::string(path_name);
+    }
+    path = cbica::replaceString(path, "\\", "/"); // normalize path for Windows
+
+    //base name sanity check
+    if (basename_var == NULL)
+    {
+      std::cerr << "No filename base has been detected.\n";
+      exit(EXIT_FAILURE);
+    }
+    else
+    {
+      baseName = std::string(basename_var);
+    }
+
+#ifdef __APPLE__
+    idx = baseName.rfind('.');
+
+    if (idx != std::string::npos)
+    {
+      extension = "." + baseName.substr(idx + 1);
+      if (extension.find("/") != std::string::npos)
+        extension = "";
+      else {
+        baseName = replaceString(baseName, extension, "");
+      }
+    }
+#endif
+
+#if (_MSC_VER >= 1700)
+    path_name[0] = NULL;
+    basename_var[0] = NULL;
+    drive_letter[0] = NULL;
+#endif
+    if (!path.empty())
+    {
+      if (path[path.length() - 1] != '/')
+      {
+        path += "/";
+      }
+    }
+
+    return true;
+  }
+}
+
+std::string normPath(const std::string &path)
+{
+  if (path.empty())
+    return "";
+  char drive[3] = { '\0', ':', '\0' };
+  size_t i = 0;
+#if defined(_WIN32)
+  if (path.size() > 1 && path[1] == ':')
+  {
+    drive[0] = path[0];
+    i = 2;
+  }
+#endif
+  std::string norm_path = drive;
+  bool abs = issep(path[i]);
+  if (abs)
+  {
+#if defined(_WIN32)
+    while (i <= path.size() && issep(path[i]))
+    {
+      norm_path += cSeparator;
+      i++;
+    }
+#else
+    norm_path += cSeparator;
+#endif
+  }
+  std::string current;
+  std::vector<std::string> parts;
+  while (i <= path.size())
+  {
+    if (issep(path[i]) || path[i] == '\0')
+    {
+      if (current == "..")
+      {
+        if (!abs && (parts.empty() || parts.back() == ".."))
+        {
+          parts.push_back(current);
+        }
+        else if (!parts.empty())
+        {
+          parts.pop_back();
+        }
+      }
+      else if (current != "" && current != ".")
+      {
+        parts.push_back(current);
+      }
+      current.clear();
+    }
+    else
+    {
+      current += path[i];
+    }
+    i++;
+  }
+  for (i = 0; i < parts.size(); i++)
+  {
+    norm_path = join(norm_path, parts[i]);
+  }
+  std::replace(norm_path.begin(), norm_path.end(), '\\', '/');
+  return norm_path.empty() ? "." : norm_path;
+}
+
+std::string getExecutablePath()
+{
+  std::string path, base, ext;
+  splitFileName(getFullPath(), path, base, ext);
+  // #ifdef __APPLE__
+  //   return "/Applications/CaPTk_1.6.2.Beta.app/Contents/MacOS/";
+  // #endif
+  return cbica::normPath(path) + "/";
+}
+
+
 static void show_usage(string name)
 {
     cerr << "Usage: " << name << " <option(s)>\n"
@@ -219,14 +504,17 @@ int main(int argc, char* argv[])
     string s2 = "5";
 
     // executables
-    string c2d_executable;
+    string c2d_executable =  "./c2d";
+#if WIN32
+    c2d_executable += ".exe";
+#endif
     string greedy_executable;
     
     // Flags
     int Output_provided = 0;
     int Fixed_provided = 0;
     int Moving_provided = 0;
-    int c2d_executable_provided = 0;
+    int c2d_executable_provided = 1;
     int Flag_Full_Resolution = 0;
     int Flag_landmarks = 0;
     int PATH_Output_Temp_provided = 0;
@@ -304,15 +592,6 @@ int main(int argc, char* argv[])
                     Flag_landmarks = 1;
                 }else { // Uh-oh, there was no argument to the destination option.
                     cerr << "--landmarks option requires one argument." << '\n';
-                    return 1;
-                }
-            }
-            if ((arg == "-c") || (arg == "--c2d_executable")){
-                if (i + 1 < argc){ // Make sure we aren't at the end of argv!
-                    c2d_executable = argv[++i];
-                    c2d_executable_provided = 1;
-                }else { // Uh-oh, there was no argument to the destination option.
-                    cerr << "--c2d_executable option requires one argument." << '\n';
                     return 1;
                 }
             }
