@@ -520,7 +520,6 @@ static void show_usage(string name)
               << "Compulsory arguments:\n"
               << "\t-m,--moving [PATH to file]\tPATH to the moving image\n"
               << "\t-f,--fixed [PATH to file]\tPATH to the fixed image\n"
-              << "\t-c,--c2d_executable [PATH to file]\tPath to c2d executable, not needed if c2d executable added to the PATH !\n"
               << "\t-o,--output [PATH to directory]\tSpecify the destination path, folder will be created if it doesn't exist.\n"
               << '\n'
               << "Optional arguments:\n"
@@ -563,7 +562,7 @@ int main(int argc, char* argv[])
     string s2 = "5";
 
     // executables
-    string c2d_executable =  "./c2d";
+    string c2d_executable = getExecutablePath() + "/c2d";
 #if WIN32
     c2d_executable += ".exe";
 #endif
