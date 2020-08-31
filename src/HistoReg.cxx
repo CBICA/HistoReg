@@ -761,8 +761,8 @@ int main(int argc, char* argv[])
     cout << "Creating output and temporary directories..." << '\n';
 
     // Get name images for output folder
-    string name_source_full = basename (PATH_source.c_str());
-    string name_target_full = basename (PATH_target.c_str());
+    string name_source_full = basename (PATH_source_temp.c_str());
+    string name_target_full = basename (PATH_target_temp.c_str());
     string delimiter = ".";
 
     string name_source = name_source_full.substr(0,name_source_full.find(delimiter));
@@ -822,8 +822,8 @@ int main(int argc, char* argv[])
     // Target
     string Size_original_target_W;
     string Size_original_target_H;
-    itk::ImageIOBase::Pointer m_itkImageIOBase = itk::ImageIOFactory::CreateImageIO(PATH_target.c_str(), itk::ImageIOFactory::ReadMode);
-    m_itkImageIOBase->SetFileName(PATH_target);
+    itk::ImageIOBase::Pointer m_itkImageIOBase = itk::ImageIOFactory::CreateImageIO(PATH_target_temp.c_str(), itk::ImageIOFactory::ReadMode);
+    m_itkImageIOBase->SetFileName(PATH_target_temp);
     m_itkImageIOBase->ReadImageInformation();
 
     if ( m_itkImageIOBase->GetNumberOfDimensions() > 2 ){
@@ -837,8 +837,8 @@ int main(int argc, char* argv[])
     // Source
     string Size_original_source_W;
     string Size_original_source_H;
-    m_itkImageIOBase = itk::ImageIOFactory::CreateImageIO(PATH_source.c_str(), itk::ImageIOFactory::ReadMode);
-    m_itkImageIOBase->SetFileName(PATH_source);
+    m_itkImageIOBase = itk::ImageIOFactory::CreateImageIO(PATH_source_temp.c_str(), itk::ImageIOFactory::ReadMode);
+    m_itkImageIOBase->SetFileName(PATH_source_temp);
     m_itkImageIOBase->ReadImageInformation();
 
     if ( m_itkImageIOBase->GetNumberOfDimensions() > 2 ){
