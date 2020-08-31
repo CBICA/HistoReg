@@ -537,15 +537,15 @@ typename TImageType::Pointer ReadImage(const std::string &fName)
   catch (itk::ExceptionObject& e)
   {
     std::cerr << "Exception caught while reading the image '" << fName << "': " << e.what() << "\n";
-    return reader;
+    return typename TImageType::New();
   }
 
-  return reader;
+  return reader->GetOutput();
 }
 
 //! Writes itk::Image to specified filename
-template <typename ComputedImageType = ImageTypeFloat2D >
-void WriteImage(typename ComputedImageType::Pointer imageToWrite, const std::string &fileName)
+template <typename ExpectedImageType = ImageTypeFloat2D >
+void WriteImage(typename ExpectedImageType::Pointer imageToWrite, const std::string &fileName)
 {
   auto writer = itk::ImageFileWriter< ExpectedImageType >::New();
 
