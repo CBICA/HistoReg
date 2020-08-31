@@ -537,7 +537,7 @@ typename TImageType::Pointer ReadImage(const std::string &fName)
   catch (itk::ExceptionObject& e)
   {
     std::cerr << "Exception caught while reading the image '" << fName << "': " << e.what() << "\n";
-    return typename TImageType::New();
+    return NULL;
   }
 
   return reader->GetOutput();
