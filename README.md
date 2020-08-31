@@ -91,6 +91,15 @@ The two images should be perfectly aligned. If you don't have a software to visu
 
 You can then compare the warped landmarks (`Output/CD68_registered_to_CD4/warped_landmarks.csv`) with the landmarks defined in the target space (`Data/Landmarks/CD4.csv`), these landmarks should be very close (from a different of a few pixels to a few tenth of pixels, which is very small compared to the original images sizes).
 
+## Supported File types
+
+- NIfTI
+- PNG
+- JPG
+- TIFF
+
+**Note** that all files are internally converted to NIfTI.
+
 # References
 [1] J. Borovec, A. Munoz-Barrutia, J. Kybic, "Benchmarking of Image Registration Methods for Differently Stained Histological Slides," 25th IEEE International Conference on Image Processing (ICIP), 2018. DOI: 10.1109/icip.2018.8451040
 
