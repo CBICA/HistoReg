@@ -603,8 +603,8 @@ int main(int argc, char* argv[])
 
     // PATH
     string PATH_Output_DIR;
-    string PATH_source;
-    string PATH_target;
+    string PATH_source, PATH_source_temp;
+    string PATH_target, PATH_target_temp;
     string PATH_landmarks;
     string PATH_Output_Temp;
 
@@ -652,7 +652,7 @@ int main(int argc, char* argv[])
             }
             if ((arg == "-m") || (arg == "--moving")){
                 if (i + 1 < argc){ // Make sure we aren't at the end of argv!
-                    PATH_source = argv[++i]; // Increment 'i' so we don't get the argument as the next argv[i].
+                    PATH_source_temp = argv[++i]; // Increment 'i' so we don't get the argument as the next argv[i].
                     Moving_provided = 1;
                 } else { // Uh-oh, there was no argument to the destination option.
                     cerr << "--moving option requires one argument." << '\n';
@@ -661,7 +661,7 @@ int main(int argc, char* argv[])
             }
             if ((arg == "-f") || (arg == "--fixed")){
                 if (i + 1 < argc){ // Make sure we aren't at the end of argv!
-                    PATH_target = argv[++i]; // Increment 'i' so we don't get the argument as the next argv[i].
+                    PATH_target_temp = argv[++i]; // Increment 'i' so we don't get the argument as the next argv[i].
                     Fixed_provided = 1;
                 } else { // Uh-oh, there was no argument to the destination option.
                     cerr << "--target option requires one argument." << '\n';
@@ -868,6 +868,13 @@ int main(int argc, char* argv[])
 
     string PATH_small_target = PATH_Output_Temp + string("/new_small_target.nii.gz");
     string PATH_small_source = PATH_Output_Temp + string("/new_small_source.nii.gz");
+
+    PATH_target = PATH_Output_Temp + string("/converted_target.nii.gz");
+    PATH_source = PATH_Output_Temp + string("/converted_source.nii.gz");
+
+    // doing this to ensure any file type supported by ITK can be used
+    WriteImage(ReadImage(PATH_target_temp), PATH_target);
+    WriteImage(ReadImage(PATH_source_temp), PATH_source);
 
     string command_source = c2d_executable + string(" ") + PATH_target + string(" ") + Resampling_command + string(" ") + PATH_small_target;
     string command_target = c2d_executable + string(" ") + PATH_source + string(" ") + Resampling_command + string(" ") + PATH_small_source;
