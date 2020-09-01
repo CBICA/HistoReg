@@ -49,7 +49,7 @@ jobs:
         cmake --build . --target ALL_BUILD
         ## wait for ITK to finish building
         # this is for HistoReg
-        rm -rf CMakeCache*
+        rm CMakeCache.txt
         cmake -DITK_DIR=./ITK-build -DCMAKE_INSTALL_PREFIX=./install ..
         cmake --build . --target ALL_BUILD
         cmake --build . --target INSTALL
