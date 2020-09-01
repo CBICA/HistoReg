@@ -1,14 +1,6 @@
 name: CI build and run
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-#on:
-#  # Trigger the workflow on push or pull request, but only for the master branch
-#  push:
-#    branches:
-#      - master
-#  pull_request:
-#    branches:
-#      - master
 # Trigger the workflow on push or pull request
 on: [push, pull_request]
 
@@ -44,12 +36,12 @@ jobs:
         # this will build ITK as HistoReg needs
         cmake ..
         # add '-j${N}' to specify number of threads to use for compilation
-        make
+        make -j${N}
         ## wait for ITK to finish building
         # this is for HistoReg
         cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} ..
         # add '-j${N}' to specify number of threads to use for compilation
-        make
+        make -j${N}
         # performs installation and executable stripping
         make install/strip
 
@@ -59,16 +51,15 @@ jobs:
         cd bin
         # this will build ITK as HistoReg needs
         cmake ..
-        # add '-- -j${N}' to specify number of threads to use for compilation
         cmake --build . --target ALL_BUILD
         ## wait for ITK to finish building
         # this is for HistoReg
         cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} ..
-        # add '-- -j${N}' to specify number of threads to use for compilation
-        cmake --build . --target ALL_BUILD
+        cmake --build . --target ALL_BUILD -- -j${N}
         cmake --build . --target INSTALL
 
     - name: sample Run
       run: |
         HistoReg_source=${pwd}
-        ${installDir}/bin/HistoReg -m ${HistoReg_source}/Data/Images/CD68.jpg -f ${HistoReg_source}/Data/Images/CD4.jpg -c /path/to/c2d/executable  -o ${HistoReg_source}/Data/Output/ -l ${HistoReg_source}/Data/Landmarks/CD68.csv -S
+        HistoReg_install=${pwd}
+        ${HistoReg_install}/bin/HistoReg -m ${HistoReg_source}/Data/Images/CD68.jpg -f ${HistoReg_source}/Data/Images/CD4.jpg -c /path/to/c2d/executable  -o ${HistoReg_source}/Data/Output/ -l ${HistoReg_source}/Data/Landmarks/CD68.csv -S
