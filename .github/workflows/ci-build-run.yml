@@ -1,0 +1,60 @@
+name: CI Build and Run
+
+# see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
+# Trigger the workflow on push or pull request
+on: [push, pull_request]
+
+jobs:
+  pytest:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-18.04, windows-2019]
+
+    # Timeout: https://stackoverflow.com/a/59076067/4521646
+    timeout-minutes: 50
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: prepare build
+      run: |
+        git submodule init
+        git submodule update
+        mkdir bin
+
+    - name: build for Linux
+      if: runner.os == 'linux'
+      run: |
+        cd bin
+        # this will build ITK as HistoReg needs
+        cmake ..
+        # add '-j${N}' to specify number of threads to use for compilation
+        make 
+        ## wait for ITK to finish building
+        # this is for HistoReg
+        cmake -DITK_DIR=./ITK-build -DCMAKE_INSTALL_PREFIX=./install ..
+        # add '-j${N}' to specify number of threads to use for compilation
+        make 
+        # performs installation and executable stripping
+        make install/strip
+
+    - name: build for Windows
+      if: runner.os == 'windows'
+      run: |
+        cd bin
+        # this will build ITK as HistoReg needs
+        cmake ..
+        cmake --build . --target ALL_BUILD
+        ## wait for ITK to finish building
+        # this is for HistoReg
+        cmake -DITK_DIR=./ITK-build -DCMAKE_INSTALL_PREFIX=./install ..
+        cmake --build . --target ALL_BUILD
+        cmake --build . --target INSTALL
+
+    - name: sample Run
+      run: |
+        HistoReg_source=${pwd}
+        HistoReg_install=${pwd}/bin/install
+        ${HistoReg_install}/bin/HistoReg -m ${HistoReg_source}/Data/Images/CD68.jpg -f ${HistoReg_source}/Data/Images/CD4.jpg -o ${HistoReg_source}/Data/Output/ -l ${HistoReg_source}/Data/Landmarks/CD68.csv -S
