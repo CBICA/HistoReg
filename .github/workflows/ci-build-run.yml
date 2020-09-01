@@ -49,6 +49,7 @@ jobs:
         cmake --build . --target ALL_BUILD
         ## wait for ITK to finish building
         # this is for HistoReg
+        rm -rf CMakeCache*
         cmake -DITK_DIR=./ITK-build -DCMAKE_INSTALL_PREFIX=./install ..
         cmake --build . --target ALL_BUILD
         cmake --build . --target INSTALL
@@ -56,9 +57,10 @@ jobs:
     - name: sample Run
       run: |
         pwd
+        echo "ls bin"
         ls bin
+        echo "ls bin/install/"
         ls bin/install/
+        echo "ls bin/install/bin/"
         ls bin/install/bin
-        HistoReg_source=${pwd}
-        HistoReg_install=${pwd}/bin/install
-        ${HistoReg_install}/bin/HistoReg -m ${HistoReg_source}/Data/Images/CD68.jpg -f ${HistoReg_source}/Data/Images/CD4.jpg -o ${HistoReg_source}/Data/Output/ -l ${HistoReg_source}/Data/Landmarks/CD68.csv -S
+        ./bin/install/bin/HistoReg -m ./Data/Images/CD68.jpg -f ./Data/Images/CD4.jpg -o ./Data/Output/ -l ./Data/Landmarks/CD68.csv -S
