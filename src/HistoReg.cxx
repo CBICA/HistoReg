@@ -72,6 +72,8 @@ static const char  cSeparator = '/';
 
 #include "GreedyAPI.h"
 
+using ImageTypeFloat2D = itk::Image<float, 2>;
+
 int removeDirectoryRecursively(const std::string &dirname, bool bDeleteSubdirectories = true)
 {
 #if defined(_WIN32)
@@ -521,6 +523,46 @@ std::string getExecutablePath()
   return normPath(path) + "/";
 }
 
+//! Reads filename and returns itk::Image pointer
+template <class TImageType = ImageTypeFloat2D >
+typename TImageType::Pointer ReadImage(const std::string &fName)
+{
+  auto reader = itk::ImageFileReader< TImageType >::New();
+  reader->SetFileName(fName);
+
+  try
+  {
+    reader->Update();
+  }
+  catch (itk::ExceptionObject& e)
+  {
+    std::cerr << "Exception caught while reading the image '" << fName << "': " << e.what() << "\n";
+    return NULL;
+  }
+
+  return reader->GetOutput();
+}
+
+//! Writes itk::Image to specified filename
+template <typename ExpectedImageType = ImageTypeFloat2D >
+void WriteImage(typename ExpectedImageType::Pointer imageToWrite, const std::string &fileName)
+{
+  auto writer = itk::ImageFileWriter< ExpectedImageType >::New();
+
+  writer->SetInput(imageToWrite);
+  writer->SetFileName(fileName);
+
+  try
+  {
+    writer->Write();
+  }
+  catch (itk::ExceptionObject &e)
+  {
+    std::cerr << "Error occurred while trying to write the image '" << fileName << "': " << e.what() << "\n";
+  }
+
+  return;
+}
 
 static void show_usage(string name)
 {
@@ -561,8 +603,8 @@ int main(int argc, char* argv[])
 
     // PATH
     string PATH_Output_DIR;
-    string PATH_source;
-    string PATH_target;
+    string PATH_source, PATH_source_temp;
+    string PATH_target, PATH_target_temp;
     string PATH_landmarks;
     string PATH_Output_Temp;
 
@@ -610,7 +652,7 @@ int main(int argc, char* argv[])
             }
             if ((arg == "-m") || (arg == "--moving")){
                 if (i + 1 < argc){ // Make sure we aren't at the end of argv!
-                    PATH_source = argv[++i]; // Increment 'i' so we don't get the argument as the next argv[i].
+                    PATH_source_temp = argv[++i]; // Increment 'i' so we don't get the argument as the next argv[i].
                     Moving_provided = 1;
                 } else { // Uh-oh, there was no argument to the destination option.
                     cerr << "--moving option requires one argument." << '\n';
@@ -619,7 +661,7 @@ int main(int argc, char* argv[])
             }
             if ((arg == "-f") || (arg == "--fixed")){
                 if (i + 1 < argc){ // Make sure we aren't at the end of argv!
-                    PATH_target = argv[++i]; // Increment 'i' so we don't get the argument as the next argv[i].
+                    PATH_target_temp = argv[++i]; // Increment 'i' so we don't get the argument as the next argv[i].
                     Fixed_provided = 1;
                 } else { // Uh-oh, there was no argument to the destination option.
                     cerr << "--target option requires one argument." << '\n';
@@ -719,8 +761,8 @@ int main(int argc, char* argv[])
     cout << "Creating output and temporary directories..." << '\n';
 
     // Get name images for output folder
-    string name_source_full = basename (PATH_source.c_str());
-    string name_target_full = basename (PATH_target.c_str());
+    string name_source_full = basename (PATH_source_temp.c_str());
+    string name_target_full = basename (PATH_target_temp.c_str());
     string delimiter = ".";
 
     string name_source = name_source_full.substr(0,name_source_full.find(delimiter));
@@ -780,8 +822,8 @@ int main(int argc, char* argv[])
     // Target
     string Size_original_target_W;
     string Size_original_target_H;
-    itk::ImageIOBase::Pointer m_itkImageIOBase = itk::ImageIOFactory::CreateImageIO(PATH_target.c_str(), itk::ImageIOFactory::ReadMode);
-    m_itkImageIOBase->SetFileName(PATH_target);
+    itk::ImageIOBase::Pointer m_itkImageIOBase = itk::ImageIOFactory::CreateImageIO(PATH_target_temp.c_str(), itk::ImageIOFactory::ReadMode);
+    m_itkImageIOBase->SetFileName(PATH_target_temp);
     m_itkImageIOBase->ReadImageInformation();
 
     if ( m_itkImageIOBase->GetNumberOfDimensions() > 2 ){
@@ -795,8 +837,8 @@ int main(int argc, char* argv[])
     // Source
     string Size_original_source_W;
     string Size_original_source_H;
-    m_itkImageIOBase = itk::ImageIOFactory::CreateImageIO(PATH_source.c_str(), itk::ImageIOFactory::ReadMode);
-    m_itkImageIOBase->SetFileName(PATH_source);
+    m_itkImageIOBase = itk::ImageIOFactory::CreateImageIO(PATH_source_temp.c_str(), itk::ImageIOFactory::ReadMode);
+    m_itkImageIOBase->SetFileName(PATH_source_temp);
     m_itkImageIOBase->ReadImageInformation();
 
     if ( m_itkImageIOBase->GetNumberOfDimensions() > 2 ){
@@ -826,6 +868,13 @@ int main(int argc, char* argv[])
 
     string PATH_small_target = PATH_Output_Temp + string("/new_small_target.nii.gz");
     string PATH_small_source = PATH_Output_Temp + string("/new_small_source.nii.gz");
+
+    PATH_target = PATH_Output_Temp + string("/converted_target.nii.gz");
+    PATH_source = PATH_Output_Temp + string("/converted_source.nii.gz");
+
+    // doing this to ensure any file type supported by ITK can be used
+    WriteImage(ReadImage(PATH_target_temp), PATH_target);
+    WriteImage(ReadImage(PATH_source_temp), PATH_source);
 
     string command_source = c2d_executable + string(" ") + PATH_target + string(" ") + Resampling_command + string(" ") + PATH_small_target;
     string command_target = c2d_executable + string(" ") + PATH_source + string(" ") + Resampling_command + string(" ") + PATH_small_source;
