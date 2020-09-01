@@ -55,6 +55,10 @@ jobs:
 
     - name: sample Run
       run: |
+        pwd
+        ls bin
+        ls bin/install/
+        ls bin/install/bin
         HistoReg_source=${pwd}
         HistoReg_install=${pwd}/bin/install
         ${HistoReg_install}/bin/HistoReg -m ${HistoReg_source}/Data/Images/CD68.jpg -f ${HistoReg_source}/Data/Images/CD4.jpg -o ${HistoReg_source}/Data/Output/ -l ${HistoReg_source}/Data/Landmarks/CD68.csv -S
