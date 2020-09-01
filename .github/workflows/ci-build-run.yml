@@ -45,14 +45,14 @@ jobs:
       run: |
         cd bin
         # this will build ITK as HistoReg needs
-        cmake -DCMAKE_CONFIGURATION_TYPES="Release" ..
-        cmake --build . --target ALL_BUILD
+        cmake ..
+        cmake --build . --target ALL_BUILD --config Release
         ## wait for ITK to finish building
         # this is for HistoReg
         rm CMakeCache.txt
-        cmake -DCMAKE_CONFIGURATION_TYPES="Release" -DITK_DIR=./ITK-build -DCMAKE_INSTALL_PREFIX=./install ..
-        cmake --build . --target ALL_BUILD
-        cmake --build . --target INSTALL
+        cmake -DITK_DIR=./ITK-build -DCMAKE_INSTALL_PREFIX=./install ..
+        cmake --build . --target ALL_BUILD --config Release
+        cmake --build . --target INSTALL --config Release
 
     - name: sample Run
       run: |
