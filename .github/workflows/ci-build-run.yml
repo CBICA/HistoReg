@@ -44,13 +44,15 @@ jobs:
       if: runner.os == 'windows'
       run: |
         cd bin
+        mkdir bin_itk
+        cd bin_itk
         # this will build ITK as HistoReg needs
-        cmake ..
+        cmake ../..
         cmake --build . --target ALL_BUILD --config Release
         ## wait for ITK to finish building
         # this is for HistoReg
-        Remove-Item CMakeCache.txt
-        cmake -DITK_DIR=./ITK-build -DCMAKE_INSTALL_PREFIX=./install ..
+        cd ..
+        cmake -DITK_DIR=./bin_itk/ITK-build -DCMAKE_INSTALL_PREFIX=./install ..
         cmake --build . --target ALL_BUILD --config Release
         cmake --build . --target INSTALL --config Release
 
