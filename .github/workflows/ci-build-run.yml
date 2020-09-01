@@ -1,17 +1,16 @@
-name: CI build & run
+name: CI build and run
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:
-  # Trigger the workflow on push or pull request,
-  # but only for the master branch
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+#on:
+#  # Trigger the workflow on push or pull request, but only for the master branch
+#  push:
+#    branches:
+#      - master
+#  pull_request:
+#    branches:
+#      - master
 # Trigger the workflow on push or pull request
-# on: [push, pull_request]
+on: [push, pull_request]
 
 jobs:
   pytest:
@@ -24,7 +23,7 @@ jobs:
         python-version: [3.7]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 25
+    timeout-minutes: 50
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -42,22 +41,31 @@ jobs:
       if: runner.os == 'linux'
       run: |
         cd bin
-        cmake .. # this will build ITK as HistoReg needs
-        make # add '-j${N}' to specify number of threads to use for compilation
+        # this will build ITK as HistoReg needs
+        cmake ..
+        # add '-j${N}' to specify number of threads to use for compilation
+        make
         ## wait for ITK to finish building
-        cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} .. # this is for HistoReg
-        make # add '-j${N}' to specify number of threads to use for compilation
-        make install/strip # performs installation and executable stripping
+        # this is for HistoReg
+        cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} ..
+        # add '-j${N}' to specify number of threads to use for compilation
+        make
+        # performs installation and executable stripping
+        make install/strip
 
     - name: build for Windows
       if: runner.os == 'windows'
       run: |
         cd bin
-        cmake .. # this will build ITK as HistoReg needs
-        cmake --build . --target ALL_BUILD # add '-- -j${N}' to specify number of threads to use for compilation
+        # this will build ITK as HistoReg needs
+        cmake ..
+        # add '-- -j${N}' to specify number of threads to use for compilation
+        cmake --build . --target ALL_BUILD
         ## wait for ITK to finish building
-        cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} .. # this is for HistoReg
-        cmake --build . --target ALL_BUILD # add '-- -j${N}' to specify number of threads to use for compilation
+        # this is for HistoReg
+        cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} ..
+        # add '-- -j${N}' to specify number of threads to use for compilation
+        cmake --build . --target ALL_BUILD
         cmake --build . --target INSTALL
 
     - name: sample Run
