@@ -49,7 +49,7 @@ jobs:
         cmake --build . --target ALL_BUILD --config Release
         ## wait for ITK to finish building
         # this is for HistoReg
-        rm CMakeCache.txt
+        Remove-Item CMakeCache.txt
         cmake -DITK_DIR=./ITK-build -DCMAKE_INSTALL_PREFIX=./install ..
         cmake --build . --target ALL_BUILD --config Release
         cmake --build . --target INSTALL --config Release
