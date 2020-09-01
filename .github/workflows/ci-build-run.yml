@@ -1,4 +1,4 @@
-name: CI build and run
+name: CI Build and Run
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 # Trigger the workflow on push or pull request
@@ -12,16 +12,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-18.04, windows-2019]
-        python-version: [3.7]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 50
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
 
     - name: prepare build
       run: |
@@ -39,7 +34,7 @@ jobs:
         make -j${N}
         ## wait for ITK to finish building
         # this is for HistoReg
-        cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} ..
+        cmake -DCMAKE_INSTALL_PREFIX=$pwd/"ITK-build" ..
         # add '-j${N}' to specify number of threads to use for compilation
         make -j${N}
         # performs installation and executable stripping
@@ -54,8 +49,8 @@ jobs:
         cmake --build . --target ALL_BUILD
         ## wait for ITK to finish building
         # this is for HistoReg
-        cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} ..
-        cmake --build . --target ALL_BUILD -- -j${N}
+        cmake -DCMAKE_INSTALL_PREFIX=$pwd\"ITK-build" ..
+        cmake --build . --target ALL_BUILD
         cmake --build . --target INSTALL
 
     - name: sample Run
