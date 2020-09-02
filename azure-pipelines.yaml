@@ -49,7 +49,8 @@ jobs:
       displayName: 'Configure and compile HistoReg'
 
     - script: |
-        ./bin/install/bin/HistoReg.exe -m ./Data/Images/CD68.jpg -f ./Data/Images/CD4.jpg -o ./Data/Output/ -l ./Data/Landmarks/CD68.csv -S
+        cd bin/install/bin
+        HistoReg.exe -m ../../../Data/Images/CD68.jpg -f ../../../Data/Images/CD4.jpg -o ../../../Data/Output/ -l ../../../Data/Landmarks/CD68.csv -S
       displayName: 'Sample Run'
 
 - job: 'LinuxOSBuild'
