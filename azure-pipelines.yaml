@@ -29,7 +29,6 @@ jobs:
         mkdir bin
         cd bin
         call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
-        setx PATH "%PATH%;$(Build.SourcesDirectory)/bin/qt/5.12.1/bin"
         cmake --build . --target ALL_BUILD --config Release
       displayName: 'Configure and compile Superbuild'
 
@@ -77,7 +76,6 @@ jobs:
         make -j 2
         rm -rf install
       displayName: 'Configure and compile Superbuild'
-      # condition: ne(variables['CACHE_RESTORED_MAC'], 'true')
 
     - bash: |
         git pull origin master
@@ -126,7 +124,6 @@ jobs:
         make -j 2
         rm -rf install
       displayName: 'Configure and compile Superbuild'
-      # condition: ne(variables['CACHE_RESTORED_MAC'], 'true')
 
     - bash: |
         git pull origin master
