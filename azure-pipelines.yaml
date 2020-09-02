@@ -1,0 +1,150 @@
+trigger:
+  batch: true
+  branches:
+    include: ['master']
+
+# 20200312: apparently this is now explicitly required for azure
+pr:
+  branches:
+    include: ['master']
+
+jobs:
+- job: 'WindowsBuild'
+  displayName: "End-to-end Windows build & package"
+  timeoutInMinutes: 0
+  cancelTimeoutInMinutes: 300
+
+  pool:
+    vmImage: 'vs2017-win2016'
+
+  steps:
+    - checkout: self  # self represents the repo where the initial Pipelines YAML file was found
+      # fetchDepth: 1  # the depth of commits to ask Git to fetch; defaults to no limit
+
+    - script: |
+        choco install doxygen.install nsis.install wget cmake git
+      displayName: 'Install dependencies'
+
+    - script: |
+        mkdir bin
+        cd bin
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+        setx PATH "%PATH%;$(Build.SourcesDirectory)/bin/qt/5.12.1/bin"
+        cmake --build . --target ALL_BUILD --config Release
+      displayName: 'Configure and compile Superbuild'
+
+    - bash: |
+        git pull origin master
+        git log -1
+        cat CMakeLists.txt | grep -i "PROJECT_VERSION"
+      displayName: 'Testing git pull and version'
+
+    - script: |
+        cd bin
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+        cmake -G "Visual Studio 15 2017 Win64" -DCMAKE_INSTALL_PREFIX="./install" -DCMAKE_CONFIGURATION_TYPES="Release" -DCAPTK_DISABLE_CWL=ON -DITK_DIR="$(Build.SourcesDirectory)/bin/ITK-build" -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=./install ..
+        setx CMAKE_PREFIX_PATH "%CMAKE_PREFIX_PATH%;$(Build.SourcesDirectory)/bin/ITK-build"
+        cmake --build . --target ALL_BUILD --config Release
+      displayName: 'Configure and compile HistoReg'
+
+    - script: |
+        ./bin/install/bin/HistoReg.exe -m ./Data/Images/CD68.jpg -f ./Data/Images/CD4.jpg -o ./Data/Output/ -l ./Data/Landmarks/CD68.csv -S
+      displayName: 'Sample Run'
+
+- job: 'LinuxOSBuild'
+  displayName: "End-to-end Linux build & package"
+  timeoutInMinutes: 0
+  cancelTimeoutInMinutes: 300
+
+  pool:
+    vmImage: 'ubuntu-18.04'
+
+  steps:
+    - checkout: self  # self represents the repo where the initial Pipelines YAML file was found
+      # fetchDepth: 1  # the depth of commits to ask Git to fetch; defaults to no limit
+
+    - bash: |
+        sudo apt-get install make doxygen 
+        export GIT_LFS_SKIP_SMUDGE=1
+      displayName: 'Brew dependencies'
+
+    - bash: |
+        mkdir -p bin
+        cd bin
+        export CMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE
+        export CMAKE_PREFIX_PATH="/Library/TeX/texbin"
+        cmake ../ -DCMAKE_INSTALL_PREFIX="./install"
+        make -j 2
+        rm -rf install
+      displayName: 'Configure and compile Superbuild'
+      # condition: ne(variables['CACHE_RESTORED_MAC'], 'true')
+
+    - bash: |
+        git pull origin master
+        git log -1
+        cat CMakeLists.txt | grep -i "PROJECT_VERSION"
+      displayName: 'Testing git pull and version'
+
+    - bash: |
+        cd bin
+        cmake ../
+        rm CMakeCache.txt
+        export CMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE
+        export CMAKE_PREFIX_PATH="/Library/TeX/texbin"
+        export CMAKE_PREFIX_PATH=$(Build.SourcesDirectory)/bin/ITK-build:$CMAKE_PREFIX_PATH
+        cmake -DITK_DIR=./ITK-build -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=./install ../
+        make -j 2
+      displayName: 'Configure and compile HistoReg'
+
+    - bash: |
+        ./bin/install/bin/HistoReg -m ./Data/Images/CD68.jpg -f ./Data/Images/CD4.jpg -o ./Data/Output/ -l ./Data/Landmarks/CD68.csv -S
+      displayName: 'Sample Run'
+
+- job: 'MacOSBuild'
+  displayName: "End-to-end MacOS build & package"
+  timeoutInMinutes: 0
+  cancelTimeoutInMinutes: 300
+
+  pool:
+    vmImage: 'macOS-10.14'
+
+  steps:
+    - checkout: self  # self represents the repo where the initial Pipelines YAML file was found
+      # fetchDepth: 1  # the depth of commits to ask Git to fetch; defaults to no limit
+
+    - bash: |
+        brew install make doxygen libomp
+        export GIT_LFS_SKIP_SMUDGE=1
+      displayName: 'Brew dependencies'
+
+    - bash: |
+        mkdir -p bin
+        cd bin
+        export CMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE
+        export CMAKE_PREFIX_PATH="/Library/TeX/texbin"
+        cmake ../ -DCMAKE_INSTALL_PREFIX="./install"
+        make -j 2
+        rm -rf install
+      displayName: 'Configure and compile Superbuild'
+      # condition: ne(variables['CACHE_RESTORED_MAC'], 'true')
+
+    - bash: |
+        git pull origin master
+        git log -1
+        cat CMakeLists.txt | grep -i "PROJECT_VERSION"
+      displayName: 'Testing git pull and version'
+
+    - bash: |
+        cd bin
+        cmake ../
+        rm CMakeCache.txt
+        export CMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE
+        export CMAKE_PREFIX_PATH="/Library/TeX/texbin"
+        export CMAKE_PREFIX_PATH=$(Build.SourcesDirectory)/bin/ITK-build:$CMAKE_PREFIX_PATH
+        cmake -DITK_DIR=./ITK-build -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=./install ../
+        make -j 2
+      displayName: 'Configure and compile HistoReg'
+
+    - bash: |
+        ./bin/install/bin/HistoReg -m ./Data/Images/CD68.jpg -f ./Data/Images/CD4.jpg -o ./Data/Output/ -l ./Data/Landmarks/CD68.csv -S
+      displayName: 'Sample Run'
