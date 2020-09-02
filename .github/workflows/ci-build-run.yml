@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04, windows-2016]
+        os: [ubuntu-18.04]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 50
@@ -39,19 +39,6 @@ jobs:
         make 
         # performs installation and executable stripping
         make install/strip
-
-    - name: build for Windows
-      if: runner.os == 'windows'
-      run: |
-        cd bin
-        # this will build ITK as HistoReg needs
-        cmake ..
-        cmake --build . --target ALL_BUILD --config Release
-        ## wait for ITK to finish building
-        # this is for HistoReg
-        cmake -DITK_DIR=./ITK-build -DCMAKE_INSTALL_PREFIX=./install ..
-        cmake --build . --target ALL_BUILD --config Release
-        cmake --build . --target INSTALL --config Release
 
     - name: sample Run
       run: |
