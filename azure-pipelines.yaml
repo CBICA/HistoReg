@@ -29,7 +29,7 @@ jobs:
         mkdir bin
         cd bin
         call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
-        cmake -G "Visual Studio 15 2017 Win64" -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=./install -DCMAKE_CXX_FLAGS="/MP" ..
+        cmake -G "Visual Studio 15 2017 Win64" -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=./install ..
         cmake --build . --target ALL_BUILD --config Release 
       displayName: 'Configure and compile Superbuild'
 
@@ -42,7 +42,7 @@ jobs:
     - script: |
         cd bin
         call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
-        cmake -G "Visual Studio 15 2017 Win64" -DITK_DIR="$(Build.SourcesDirectory)/bin/ITK-build" -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=./install -DCMAKE_CXX_FLAGS="/MP" ..
+        cmake -G "Visual Studio 15 2017 Win64" -DITK_DIR="$(Build.SourcesDirectory)/bin/ITK-build" -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=./install ..
         setx CMAKE_PREFIX_PATH "%CMAKE_PREFIX_PATH%;$(Build.SourcesDirectory)/bin/ITK-build"
         cmake --build . --target ALL_BUILD --config Release
         cmake --build . --target INSTALL --config Release
