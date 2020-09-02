@@ -5,13 +5,13 @@ name: CI Build and Run
 on: [push, pull_request]
 
 jobs:
-  pytest:
+  build:
 
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04, windows-2019]
+        os: [ubuntu-18.04, windows-2016]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 50
@@ -44,15 +44,12 @@ jobs:
       if: runner.os == 'windows'
       run: |
         cd bin
-        mkdir bin_itk
-        cd bin_itk
         # this will build ITK as HistoReg needs
-        cmake ../..
+        cmake ..
         cmake --build . --target ALL_BUILD --config Release
         ## wait for ITK to finish building
         # this is for HistoReg
-        cd ..
-        cmake -DITK_DIR=./bin_itk/ITK-build -DCMAKE_INSTALL_PREFIX=./install ..
+        cmake -DITK_DIR=./ITK-build -DCMAKE_INSTALL_PREFIX=./install ..
         cmake --build . --target ALL_BUILD --config Release
         cmake --build . --target INSTALL --config Release
 
