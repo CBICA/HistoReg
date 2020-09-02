@@ -45,6 +45,7 @@ jobs:
         cmake -G "Visual Studio 15 2017 Win64" -DITK_DIR="$(Build.SourcesDirectory)/bin/ITK-build" -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=./install ..
         setx CMAKE_PREFIX_PATH "%CMAKE_PREFIX_PATH%;$(Build.SourcesDirectory)/bin/ITK-build"
         cmake --build . --target ALL_BUILD --config Release
+        cmake --build . --target INSTALL --config Release
       displayName: 'Configure and compile HistoReg'
 
     - script: |
@@ -93,6 +94,7 @@ jobs:
         export CMAKE_PREFIX_PATH=$(Build.SourcesDirectory)/bin/ITK-build:$CMAKE_PREFIX_PATH
         cmake -DITK_DIR=./ITK-build -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=./install ../
         make -j 2
+        make install/strip
       displayName: 'Configure and compile HistoReg'
 
     - bash: |
@@ -141,6 +143,7 @@ jobs:
         export CMAKE_PREFIX_PATH=$(Build.SourcesDirectory)/bin/ITK-build:$CMAKE_PREFIX_PATH
         cmake -DITK_DIR=./ITK-build -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=./install ../
         make -j 2
+        make install/strip
       displayName: 'Configure and compile HistoReg'
 
     - bash: |
