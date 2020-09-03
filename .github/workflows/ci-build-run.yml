@@ -1,0 +1,52 @@
+name: CI Build and Run
+
+# see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
+# Trigger the workflow on push or pull request
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-18.04]
+
+    # Timeout: https://stackoverflow.com/a/59076067/4521646
+    timeout-minutes: 50
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: prepare build
+      run: |
+        git submodule init
+        git submodule update
+        mkdir bin
+
+    - name: build for Linux
+      if: runner.os == 'linux'
+      run: |
+        cd bin
+        # this will build ITK as HistoReg needs
+        cmake ..
+        # add '-j${N}' to specify number of threads to use for compilation
+        make 
+        ## wait for ITK to finish building
+        # this is for HistoReg
+        cmake -DITK_DIR=./ITK-build -DCMAKE_INSTALL_PREFIX=./install ..
+        # add '-j${N}' to specify number of threads to use for compilation
+        make 
+        # performs installation and executable stripping
+        make install/strip
+
+    - name: sample Run
+      run: |
+        pwd
+        echo "ls bin"
+        ls bin
+        echo "ls bin/install/"
+        ls bin/install/
+        echo "ls bin/install/bin/"
+        ls bin/install/bin
+        ./bin/install/bin/HistoReg -m ./Data/Images/CD68.jpg -f ./Data/Images/CD4.jpg -o ./Data/Output/ -l ./Data/Landmarks/CD68.csv -S

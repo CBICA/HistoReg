@@ -1,4 +1,10 @@
 # HistoReg
+
+<p align="center">
+    <a href="https://dev.azure.com/CBICA/HistoReg/_build?definitionId=14&_a=summary" alt="Build Status"><img src="https://dev.azure.com/CBICA/HistoReg/_apis/build/status/HistoReg-CI?branchName=master" /></a>
+    <img src="https://img.shields.io/badge/language-c%2B%2B11-blue.svg" />
+</p>
+
 This repository describes a framework [https://arxiv.org/abs/1904.11929] for automated registration of variably-stained digitized histology slices from various anatomical sites, based on a [greedy diffeomorphic registration tool](https://sites.google.com/view/greedyreg/about).
 
 The dataset provided for the quantitative evaluation of the proposed approach was provided by the [Automatic Non-rigid Histological Image Registration (ANHIR) challenge](https://anhir.grand-challenge.org) [1-2]. This challenge was a part of the IEEE International Symposium on Biomedical Imaging (ISBI) 2019 conference, see the [workshop slides](https://www.researchgate.net/publication/332428245_Automatic_Non-rigid_Histological_Image_Registration_challenge) and used evaluation framework [BIRL](https://borda.github.io/BIRL).
@@ -33,10 +39,10 @@ git submodule update
 mkdir bin
 cd bin
 cmake .. # this will build ITK as HistoReg needs
-cmake --build . --target ALL_BUILD # add '-- -j${N}' to specify number of threads to use for compilation
+cmake --build . --target ALL_BUILD
 ## wait for ITK to finish building
 cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} .. # this is for HistoReg
-cmake --build . --target ALL_BUILD # add '-- -j${N}' to specify number of threads to use for compilation
+cmake --build . --target ALL_BUILD
 cmake --build . --target INSTALL
 ```
 
