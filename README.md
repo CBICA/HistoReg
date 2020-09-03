@@ -1,4 +1,10 @@
 # HistoReg
+
+<p align="center">
+    <a href="https://dev.azure.com/CBICA/HistoReg/_build?definitionId=14&_a=summary" alt="Build Status"><img src="https://dev.azure.com/CBICA/CaPTk/_apis/build/status/CBICA.CaPTk?branchName=master" /></a>
+    <img src="https://img.shields.io/badge/language-c%2B%2B11-blue.svg" />
+</p>
+
 This repository describes a framework [https://arxiv.org/abs/1904.11929] for automated registration of variably-stained digitized histology slices from various anatomical sites, based on a [greedy diffeomorphic registration tool](https://sites.google.com/view/greedyreg/about).
 
 The dataset provided for the quantitative evaluation of the proposed approach was provided by the [Automatic Non-rigid Histological Image Registration (ANHIR) challenge](https://anhir.grand-challenge.org) [1-2]. This challenge was a part of the IEEE International Symposium on Biomedical Imaging (ISBI) 2019 conference, see the [workshop slides](https://www.researchgate.net/publication/332428245_Automatic_Non-rigid_Histological_Image_Registration_challenge) and used evaluation framework [BIRL](https://borda.github.io/BIRL).
