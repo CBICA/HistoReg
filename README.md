@@ -1,7 +1,7 @@
 # HistoReg
 
 <p align="center">
-    <a href="https://dev.azure.com/CBICA/HistoReg/_build?definitionId=14&_a=summary" alt="Build Status"><img src="https://dev.azure.com/CBICA/CaPTk/_apis/build/status/CBICA.CaPTk?branchName=master" /></a>
+    <a href="https://dev.azure.com/CBICA/HistoReg/_build?definitionId=14&_a=summary" alt="Build Status"><img src="https://dev.azure.com/CBICA/HistoReg/_apis/build/status/HistoReg-CI?branchName=master" /></a>
     <img src="https://img.shields.io/badge/language-c%2B%2B11-blue.svg" />
 </p>
 
