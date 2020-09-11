@@ -4,3 +4,6 @@
 [submodule "c3d"]
 	path = c3d
 	url = https://github.com/CBICA/c3d.git
+[submodule "CBICA_Toolkit"]
+	path = CBICA_Toolkit
+	url = https://github.com/CBICA/CBICA_Toolkit.git
