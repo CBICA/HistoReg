@@ -56,6 +56,13 @@ IF( NOT EXISTS "${PROJECT_SOURCE_DIR}/c3d/CMakeLists.txt" )
   OUTPUT_VARIABLE git_ver)
 ENDIF()
 
+IF( NOT EXISTS "${PROJECT_SOURCE_DIR}/CBICA_Toolkit/CMakeLists.txt" )
+  EXECUTE_PROCESS(COMMAND git submodule update --init ${PROJECT_SOURCE_DIR}/CBICA_Toolkit
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  RESULT_VARIABLE git_result
+  OUTPUT_VARIABLE git_ver)
+ENDIF()
+
 ADD_SUBDIRECTORY(c3d)
 
 # add greedy files to compilation
