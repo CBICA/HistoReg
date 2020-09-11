@@ -64,6 +64,7 @@ IF( NOT EXISTS "${PROJECT_SOURCE_DIR}/CBICA_Toolkit/CMakeLists.txt" )
 ENDIF()
 
 ADD_SUBDIRECTORY(c3d)
+ADD_SUBDIRECTORY(CBICA_Toolkit)
 
 # add greedy files to compilation
 FILE( GLOB_RECURSE GREEDY_HEADERS "${PROJECT_SOURCE_DIR}/greedy/src/*.h" )
@@ -90,6 +91,9 @@ INCLUDE_DIRECTORIES(
   ${PROJECT_SOURCE_DIR}/greedy/src/ITKFilters/include
   ${PROJECT_SOURCE_DIR}/greedy/src/macf
   ${PROJECT_SOURCE_DIR}/greedy/utilities
+  ${PROJECT_SOURCE_DIR}/CBICA_Toolkit/CmdParser/include
+  ${PROJECT_SOURCE_DIR}/CBICA_Toolkit/src/classes
+  ${PROJECT_SOURCE_DIR}/CBICA_Toolkit/src/classes/itk
 )
 
 ADD_LIBRARY(GREEDY_LIB ${GREEDY_SOURCES_ALL})
