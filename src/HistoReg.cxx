@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <array>
 
 #ifdef WIN32
 #include <direct.h>
@@ -198,31 +199,45 @@ bool createDir(const std::string &dir_name)
   return false;
 }
 
-string GetStdoutFromCommand(string cmd)
+std::vector<std::string> stringSplit(const std::string &str, const std::string &delim)
 {
-  string data;
-  FILE * stream;
-  const int max_buffer = 256;
-  char buffer[max_buffer];
-  cmd.append(" 2>&1");
+  std::vector<std::string> results;
 
+  for (size_t i = 0; i < str.length(); i++)
+  {
+    std::string tempString = "";
+    while ((str[i] != *delim.c_str()) && (i < str.length()))
+    {
+      tempString += str[i];
+      i++;
+    }
+    results.push_back(tempString);
+  }
+
+  return results;
+}
+
+std::string GetStdoutFromCommand(std::string cmd)
+{
+  std::array<char, 256> buffer;
+  std::string result;
 #ifdef WIN32
-  stream = _popen(cmd.c_str(), "r");
-  if (stream) {
-    while (!feof(stream))
-      if (fgets(buffer, max_buffer, stream) != NULL) data.append(buffer);
-    _pclose(stream);
-  }
-  return data;
+#define PCLOSE _pclose
+#define POPEN _popen
 #else
-  stream = popen(cmd.c_str(), "r");
-  if (stream) {
-    while (!feof(stream))
-      if (fgets(buffer, max_buffer, stream) != NULL) data.append(buffer);
-    pclose(stream);
-  }
-  return data;
+#define PCLOSE pclose
+#define POPEN popen
 #endif
+  std::unique_ptr<FILE, decltype(&PCLOSE)> pipe(POPEN(cmd.c_str(), "r"), PCLOSE);
+  if (!pipe) 
+  {
+    throw std::runtime_error("popen() failed!");
+  }
+  while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) 
+  {
+    result += buffer.data();
+  }
+  return result;
 }
 
 
@@ -957,10 +972,11 @@ int main(int argc, char* argv[])
   // Extract mean and std of the intensities of the background (4 square of the size of the kernel at each corners)
 
   // Create the command to get the intensites of the corners
-  string Four_corners_command = c2d_executable + string(" ") + PATH_small_target + string(" -dup -cmv -popas Y -popas X -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c00 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c01 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c11 -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c10 -push c00 -push c01 -push c11 -push c10 -add -add -add -lstat" + grep);
+  string Four_corners_command = c2d_executable + string(" ") + PATH_small_target + string(" -dup -cmv -popas Y -popas X -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c00 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c01 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c11 -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c10 -push c00 -push c01 -push c11 -push c10 -add -add -add -lstat");
 
   // run command and get output
   string stats_target = GetStdoutFromCommand(Four_corners_command);
+  stats_target = stringSplit(stats_target, "\n")[2];
 
   // Replace multiple consecutive space in the string by only one (this is needed because of how the ouput of the c2d command is)
   string::iterator new_end = unique(stats_target.begin(), stats_target.end(), BothAreSpaces);
@@ -979,10 +995,11 @@ int main(int argc, char* argv[])
   int Size_H_minus_kernel_source = stoi(Size_small_source_H) - kernel;
 
   // command to get intensities
-  Four_corners_command = c2d_executable + string(" ") + PATH_small_source + string(" -dup -cmv -popas Y -popas X -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c00 -push X -thresh ") + to_string(Size_W_minus_kernel_source) + string(" ") + Size_small_source_W + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c01 -push X -thresh ") + to_string(Size_W_minus_kernel_source) + string(" ") + Size_small_source_W + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_source) + string(" ") + Size_small_source_H + string(" 1 0 -times -popas c11 -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_source) + string(" ") + Size_small_source_H + string(" 1 0 -times -popas c10 -push c00 -push c01 -push c11 -push c10 -add -add -add -lstat" + grep);
+  Four_corners_command = c2d_executable + string(" ") + PATH_small_source + string(" -dup -cmv -popas Y -popas X -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c00 -push X -thresh ") + to_string(Size_W_minus_kernel_source) + string(" ") + Size_small_source_W + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c01 -push X -thresh ") + to_string(Size_W_minus_kernel_source) + string(" ") + Size_small_source_W + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_source) + string(" ") + Size_small_source_H + string(" 1 0 -times -popas c11 -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_source) + string(" ") + Size_small_source_H + string(" 1 0 -times -popas c10 -push c00 -push c01 -push c11 -push c10 -add -add -add -lstat");
 
   // run command and get output
   string stats_source = GetStdoutFromCommand(Four_corners_command);
+  stats_source = stringSplit(stats_source, "\n")[2];
 
   // Replace multiple consecutive space by only one
   new_end = unique(stats_source.begin(), stats_source.end(), BothAreSpaces);
