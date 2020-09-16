@@ -73,7 +73,11 @@ static const char  cSeparator = '/';
 
 #include "GreedyAPI.h"
 
-using ImageTypeFloat2D = itk::Image<float, 2>;
+//using ImageTypeFloat2D = itk::Image<float, 2>;
+constexpr unsigned int Dimension = 2;
+using RGBPixelType = itk::RGBPixel<unsigned char>;
+
+using RGBImageType = itk::Image<RGBPixelType, Dimension>;
 
 int removeDirectoryRecursively(const std::string &dirname, bool bDeleteSubdirectories = true)
 {
@@ -539,7 +543,7 @@ std::string getExecutablePath()
 }
 
 //! Reads filename and returns itk::Image pointer
-template <class TImageType = ImageTypeFloat2D >
+template <class TImageType = RGBImageType >
 typename TImageType::Pointer ReadImage(const std::string &fName)
 {
   auto reader = itk::ImageFileReader< TImageType >::New();
@@ -559,7 +563,7 @@ typename TImageType::Pointer ReadImage(const std::string &fName)
 }
 
 //! Writes itk::Image to specified filename
-template <typename ExpectedImageType = ImageTypeFloat2D >
+template <typename ExpectedImageType = RGBImageType >
 void WriteImage(typename ExpectedImageType::Pointer imageToWrite, const std::string &fileName)
 {
   auto writer = itk::ImageFileWriter< ExpectedImageType >::New();
@@ -899,11 +903,13 @@ int main(int argc, char* argv[])
   WriteImage(ReadImage(PATH_target_temp), PATH_target);
   WriteImage(ReadImage(PATH_source_temp), PATH_source);
 
+
   string command_source = c2d_executable + string(" ") + PATH_target + string(" ") + Resampling_command + string(" ") + PATH_small_target;
   string command_target = c2d_executable + string(" ") + PATH_source + string(" ") + Resampling_command + string(" ") + PATH_small_source;
 
   cout << "   Resampling source..." << '\n';
   system(command_source.c_str());
+
   cout << "   Resampling target..." << '\n';
   system(command_target.c_str());
 
