@@ -56,7 +56,15 @@ IF( NOT EXISTS "${PROJECT_SOURCE_DIR}/c3d/CMakeLists.txt" )
   OUTPUT_VARIABLE git_ver)
 ENDIF()
 
+IF( NOT EXISTS "${PROJECT_SOURCE_DIR}/CBICA_Toolkit/CMakeLists.txt" )
+  EXECUTE_PROCESS(COMMAND git submodule update --init ${PROJECT_SOURCE_DIR}/CBICA_Toolkit
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  RESULT_VARIABLE git_result
+  OUTPUT_VARIABLE git_ver)
+ENDIF()
+
 ADD_SUBDIRECTORY(c3d)
+# ADD_SUBDIRECTORY(CBICA_Toolkit)
 
 # add greedy files to compilation
 FILE( GLOB_RECURSE GREEDY_HEADERS "${PROJECT_SOURCE_DIR}/greedy/src/*.h" )
@@ -83,6 +91,9 @@ INCLUDE_DIRECTORIES(
   ${PROJECT_SOURCE_DIR}/greedy/src/ITKFilters/include
   ${PROJECT_SOURCE_DIR}/greedy/src/macf
   ${PROJECT_SOURCE_DIR}/greedy/utilities
+  # ${PROJECT_SOURCE_DIR}/CBICA_Toolkit/CmdParser/include
+  # ${PROJECT_SOURCE_DIR}/CBICA_Toolkit/src/classes
+  # ${PROJECT_SOURCE_DIR}/CBICA_Toolkit/src/classes/itk
 )
 
 ADD_LIBRARY(GREEDY_LIB ${GREEDY_SOURCES_ALL})
