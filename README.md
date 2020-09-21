@@ -31,17 +31,17 @@ By downloading HistoReg, you agree to our [license](https://www.med.upenn.edu/cb
 
 Showing an example set of commands to download and compile HistoReg on a Windows machine:
 
-```bash
+```pwershell
 git clone https://github.com/CBICA/HistoReg.git HistoReg
 cd HistoReg
 git submodule init 
 git submodule update
 mkdir bin
 cd bin
-cmake .. # this will build ITK as HistoReg needs
+cmake -A x64 .. # this will build ITK as HistoReg needs
 cmake --build . --target ALL_BUILD
 ## wait for ITK to finish building
-cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} .. # this is for HistoReg
+cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} -A x64 .. # this is for HistoReg
 cmake --build . --target ALL_BUILD
 cmake --build . --target INSTALL
 ```
