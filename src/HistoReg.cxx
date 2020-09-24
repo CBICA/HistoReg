@@ -689,7 +689,7 @@ int main(int argc, char* argv[])
               Reslice_provided = 1;
           }
           else { // Uh-oh, there was no argument to the destination option.
-              cerr << "--moving option requires one argument." << '\n';
+              cerr << "--reslice option requires one argument." << '\n';
               return 1;
           }
       }
