@@ -9,6 +9,25 @@ This repository describes a framework [https://arxiv.org/abs/1904.11929] for aut
 
 The dataset provided for the quantitative evaluation of the proposed approach was provided by the [Automatic Non-rigid Histological Image Registration (ANHIR) challenge](https://anhir.grand-challenge.org) [1-2]. This challenge was a part of the IEEE International Symposium on Biomedical Imaging (ISBI) 2019 conference, see the [workshop slides](https://www.researchgate.net/publication/332428245_Automatic_Non-rigid_Histological_Image_Registration_challenge) and used evaluation framework [BIRL](https://borda.github.io/BIRL).
 
+## Citation
+
+If you use HistoReg, please cite the following article:
+
+```
+@article{app11041892,
+  author = {Venet, Ludovic and Pati, Sarthak and Feldman, Michael D. and Nasrallah, MacLean P. and Yushkevich, Paul and Bakas, Spyridon},
+  title = {Accurate and Robust Alignment of Differently Stained Histologic Images Based on Greedy Diffeomorphic Registration},
+  journal = {Applied Sciences},
+  volume = {11},
+  year = {2021},
+  number = {4},
+  article-number = {1892},
+  url = {https://doi.org/10.3390/app11041892},
+  issn = {2076-3417},
+  doi = {10.3390/app11041892}
+}
+```
+
 ## Supporting Grant
 
 This work is partly supported by the National Institutes of Health under grant award numbers NIH/NCI/ITCR:U24-CA189523, NIH/NIBIB:R01EB017255, NIH/NIA:R01AG056014, and NIH/NIA:P30AG010124.
