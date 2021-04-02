@@ -61,6 +61,7 @@ cmake -A x64 .. # this will build ITK as HistoReg needs
 cmake --build . --target ALL_BUILD
 ## wait for ITK to finish building
 cmake -DCMAKE_INSTALL_PREFIX=${path_to_where_you_want_to_install} -A x64 .. # this is for HistoReg
+# please ensure that install directory is empty and in a location different from source or bin folders
 cmake --build . --target ALL_BUILD
 cmake --build . --target INSTALL
 ```
