@@ -72,13 +72,21 @@ static const char  cSeparator = '/';
 #include <thread>
 
 #include "GreedyAPI.h"
-#include "cbicaUtilities.h"
 
 //using ImageTypeFloat2D = itk::Image<float, 2>;
 constexpr unsigned int Dimension = 2;
 using RGBPixelType = itk::RGBPixel<unsigned char>;
 
 using RGBImageType = itk::Image<RGBPixelType, Dimension>;
+
+bool fileExists(const std::string &fName)
+{
+  std::ifstream file_exists(fName.c_str());
+  if (file_exists.good())
+    return true;
+  else
+    return false;
+}
 
 int removeDirectoryRecursively(const std::string &dirname, bool bDeleteSubdirectories = true)
 {
@@ -1355,7 +1363,7 @@ int main(int argc, char* argv[])
   int i = 0;
 
   // Read small affine
-  if (!cbica::isFile(PATH_small_affine)) // go ahead only if file is not found, otherwise pick up from previous
+  if (!fileExists(PATH_small_affine)) // go ahead only if file is not found, otherwise pick up from previous
   {
     smallAffFile.open(PATH_small_affine);
     while (!smallAffFile.eof())
@@ -1386,7 +1394,7 @@ int main(int argc, char* argv[])
   {
     PATH_affine = PATH_Output_metrics_full + "/Affine.mat";
   }
-  if (!cbica::isFile(PATH_affine)) // go ahead only if file is not found, otherwise pick up from previous
+  if (!fileExists(PATH_affine)) // go ahead only if file is not found, otherwise pick up from previous
   {
     ofstream AffineFile;
     AffineFile.open(PATH_affine);
