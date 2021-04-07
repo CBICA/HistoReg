@@ -72,6 +72,7 @@ static const char  cSeparator = '/';
 #include <thread>
 
 #include "GreedyAPI.h"
+#include "cbicaUtilities.h"
 
 //using ImageTypeFloat2D = itk::Image<float, 2>;
 constexpr unsigned int Dimension = 2;
@@ -1333,24 +1334,27 @@ int main(int argc, char* argv[])
   int i = 0;
 
   // Read small affine
-  smallAffFile.open(PATH_small_affine);
-  while (!smallAffFile.eof())
+  if (!cbica::isFile(PATH_small_affine)) // go ahead only if file is not found, otherwise pick up from previous
   {
-    getline(smallAffFile, STRING);
+    smallAffFile.open(PATH_small_affine);
+    while (!smallAffFile.eof())
+    {
+      getline(smallAffFile, STRING);
 
-    stringstream(STRING.substr(0, STRING.find(delimiter))) >> my_var[i];
-    STRING.erase(0, STRING.find(delimiter) + delimiter.length());
-    i++;
+      stringstream(STRING.substr(0, STRING.find(delimiter))) >> my_var[i];
+      STRING.erase(0, STRING.find(delimiter) + delimiter.length());
+      i++;
 
-    stringstream(STRING.substr(0, STRING.find(delimiter))) >> my_var[i];
-    STRING.erase(0, STRING.find(delimiter) + delimiter.length());
-    i++;
+      stringstream(STRING.substr(0, STRING.find(delimiter))) >> my_var[i];
+      STRING.erase(0, STRING.find(delimiter) + delimiter.length());
+      i++;
 
-    stringstream(STRING.substr(0, STRING.find(delimiter))) >> my_var[i];
-    STRING.erase(0, STRING.find(delimiter) + delimiter.length());
-    i++;
+      stringstream(STRING.substr(0, STRING.find(delimiter))) >> my_var[i];
+      STRING.erase(0, STRING.find(delimiter) + delimiter.length());
+      i++;
+    }
+    smallAffFile.close();
   }
-  smallAffFile.close();
 
   // Modify translation vector
   long double new_val_1 = my_var[2] * factor;
@@ -1358,12 +1362,14 @@ int main(int argc, char* argv[])
 
   // Write new matrix adapted to full resolution images
   string PATH_affine = PATH_Output_metrics_full + "/Affine.mat";
-  ofstream AffineFile;
-  AffineFile.open(PATH_affine);
-  AffineFile << to_string(my_var[0]) + " " + to_string(my_var[1]) + " " + to_string(new_val_1) + '\n' + to_string(my_var[3]) + " " + to_string(my_var[4]) + " " + to_string(new_val_2) + '\n' + to_string(my_var[6]) + to_string(my_var[7]) + " " + to_string(my_var[8]);
-  AffineFile.close();
-
-  cout << "   Affine done." << '\n';
+  if (!cbica::isFile(PATH_affine)) // go ahead only if file is not found, otherwise pick up from previous
+  {
+    ofstream AffineFile;
+    AffineFile.open(PATH_affine);
+    AffineFile << to_string(my_var[0]) + " " + to_string(my_var[1]) + " " + to_string(new_val_1) + '\n' + to_string(my_var[3]) + " " + to_string(my_var[4]) + " " + to_string(new_val_2) + '\n' + to_string(my_var[6]) + to_string(my_var[7]) + " " + to_string(my_var[8]);
+    AffineFile.close();
+    std::cout << "   Affine done." << '\n';
+  }
 
   // Warp 
   // We want to apply transformation to the original images that are NOT PADDED.
