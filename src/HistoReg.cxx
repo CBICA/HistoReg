@@ -615,6 +615,9 @@ static void show_usage(string name)
     << "\t-s1,--smoothing_1 (-s2,--smoothing_2) [VALUE]\tDefine the value of the smoothing parameters for deformable registration. (s1 : 'Metric gradient regularization' and s2 : 'Warp regularization')\n\t\tMust be float or integers, default value s1 = 6 and s2 = 5.\n"
     << "\t-sa,--small_affine [PATH to mat]\tPATH to 'small_affine.mat' file.\n"
     << "\t-fa,--full_affine [PATH to mat]\tPATH to 'full_affine.mat' file.\n"
+    << "\t-sd,--small_deform [PATH to mat]\tPATH to 'small_warp.nii.gz' file.\n"
+    << "\t-sdi,--small_deform_inv [PATH to mat]\tPATH to 'small_inv_warp.nii.gz' file.\n"
+    << "\t-fd,--full_deform [PATH to mat]\tPATH to 'big_warp.nii.gz' file.\n"
     ;
 }
 
@@ -646,6 +649,7 @@ int main(int argc, char* argv[])
   string s1 = "6";
   string s2 = "5";
   string PATH_small_affine, PATH_affine;
+  string PATH_big_warp, PATH_small_warp, PATH_small_inv_warp;
 
   // executables
   string c2d_executable = getExecutablePath() + "/c2d";
@@ -787,6 +791,21 @@ int main(int argc, char* argv[])
       if ((arg == "-fa") || (arg == "--full_affine")) {
         if (i + 1 < argc) { // Make sure we aren't at the end of argv!
           PATH_affine = argv[++i];
+        }
+      }
+      if ((arg == "-sd") || (arg == "--small_deform")) {
+        if (i + 1 < argc) { // Make sure we aren't at the end of argv!
+          PATH_small_warp = argv[++i];
+        }
+      }
+      if ((arg == "-sdi") || (arg == "--small_deform_inv")) {
+        if (i + 1 < argc) { // Make sure we aren't at the end of argv!
+          PATH_small_inv_warp = argv[++i];
+        }
+      }
+      if ((arg == "-fd") || (arg == "--full_deform")) {
+        if (i + 1 < argc) { // Make sure we aren't at the end of argv!
+          PATH_big_warp = argv[++i];
         }
       }
       if ((arg == "-P") || (arg == "--PNG")) {
@@ -1266,8 +1285,14 @@ int main(int argc, char* argv[])
   param_Diff.sigma_post.sigma = stod(s2);
 
   // Define output
-  string PATH_small_warp = PATH_Output_metrics_small + string("/small_warp.nii.gz");
-  string PATH_small_inv_warp = PATH_Output_metrics_small + string("/small_inv_warp.nii.gz");
+  if (PATH_small_warp.empty())
+  {
+    PATH_small_warp = PATH_Output_metrics_small + string("/small_warp.nii.gz");
+  }
+  if (PATH_small_inv_warp.empty())
+  {
+    PATH_small_inv_warp = PATH_Output_metrics_small + string("/small_inv_warp.nii.gz");
+  }
 
   param_Diff.inverse_warp = PATH_small_inv_warp;
   param_Diff.output = PATH_small_warp;
@@ -1421,10 +1446,13 @@ int main(int argc, char* argv[])
   command = c2d_executable + " " + PATH_mask_padded + " -origin 0x0mm -o " + PATH_mask_padded;
   system(command.c_str());
 
-  // Change origin of the mask so it matches the one of the full resolution warp image. 
-  command = c2d_executable + " -mcs " + PATH_small_warp + " -origin 0x0mm -omc " + PATH_small_warp;
-  system(command.c_str());
-
+  if (!fileExists(PATH_small_warp))
+  {
+    // Change origin of the mask so it matches the one of the full resolution warp image. 
+    command = c2d_executable + " -mcs " + PATH_small_warp + " -origin 0x0mm -omc " + PATH_small_warp;
+    system(command.c_str());
+  }
+  
   // Multiply the mask and the full resolution warp image to force to 0 every value in the padded part of the warp image.
   string PATH_small_warp_no_pad = PATH_Output_Temp + "/small_warp_no_pad.nii.gz";
   command = c2d_executable + " -mcs " + PATH_mask_padded + " -popas mask -mcs " + PATH_small_warp + " -foreach -push mask -times -endfor -omc " + PATH_small_warp_no_pad;
@@ -1436,11 +1464,21 @@ int main(int argc, char* argv[])
   system(command.c_str());
 
   // resample warp to original image dimension and scale it with the scale we resampled the image to. (the warp image is a matrix that contains a translation vector for each pixel of the target image, we need to scale this translation to the new resolution as we did for the affine matrix)
-  string PATH_big_warp = PATH_Output_metrics_full + "/big_warp.nii.gz";
-  command = c2d_executable + " -mcs " + PATH_small_warp_no_pad_trim + " -foreach -resample " + Size_original_target_W + "x" + Size_original_target_H + " -scale " + to_string(factor) + " -spacing 1x1mm -origin 0x0mm -endfor -omc " + PATH_big_warp;
-  system(command.c_str());
+  if (PATH_big_warp.empty())
+  {
+    PATH_big_warp = PATH_Output_metrics_full + "/big_warp.nii.gz";
+  }
+  if (!fileExists(PATH_big_warp))
+  {
+    command = c2d_executable + " -mcs " + PATH_small_warp_no_pad_trim + " -foreach -resample " + Size_original_target_W + "x" + Size_original_target_H + " -scale " + to_string(factor) + " -spacing 1x1mm -origin 0x0mm -endfor -omc " + PATH_big_warp;
+    system(command.c_str());
+    cout << "   Warp done." << '\n';
+  }
+  else
+  {
+    cout << "   Warp picked from prior run." << '\n';
+  }
 
-  cout << "   Warp done." << '\n';
   end_intermediate = chrono::system_clock::now();
   duration = chrono::duration_cast<chrono::seconds> (end_intermediate - start_intermediate).count();
   cout << "Adapt transformation to original image took : " << duration << " secondes." << '\n';
