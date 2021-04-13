@@ -1285,11 +1285,11 @@ int main(int argc, char* argv[])
   param_Diff.sigma_post.sigma = stod(s2);
 
   // Define output
-  if (PATH_small_warp.empty())
+  if (PATH_small_warp == "")
   {
     PATH_small_warp = PATH_Output_metrics_small + string("/small_warp.nii.gz");
   }
-  if (PATH_small_inv_warp.empty())
+  if (PATH_small_inv_warp == "")
   {
     PATH_small_inv_warp = PATH_Output_metrics_small + string("/small_inv_warp.nii.gz");
   }
@@ -1464,7 +1464,7 @@ int main(int argc, char* argv[])
   system(command.c_str());
 
   // resample warp to original image dimension and scale it with the scale we resampled the image to. (the warp image is a matrix that contains a translation vector for each pixel of the target image, we need to scale this translation to the new resolution as we did for the affine matrix)
-  if (PATH_big_warp.empty())
+  if (PATH_big_warp == "")
   {
     PATH_big_warp = PATH_Output_metrics_full + "/big_warp.nii.gz";
   }
