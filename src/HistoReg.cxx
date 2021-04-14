@@ -1446,12 +1446,9 @@ int main(int argc, char* argv[])
   command = c2d_executable + " " + PATH_mask_padded + " -origin 0x0mm -o " + PATH_mask_padded;
   system(command.c_str());
 
-  if (!fileExists(PATH_small_warp))
-  {
-    // Change origin of the mask so it matches the one of the full resolution warp image. 
-    command = c2d_executable + " -mcs " + PATH_small_warp + " -origin 0x0mm -omc " + PATH_small_warp;
-    system(command.c_str());
-  }
+  // Change origin of the mask so it matches the one of the full resolution warp image. 
+  command = c2d_executable + " -mcs " + PATH_small_warp + " -origin 0x0mm -omc " + PATH_small_warp;
+  system(command.c_str());
   
   // Multiply the mask and the full resolution warp image to force to 0 every value in the padded part of the warp image.
   string PATH_small_warp_no_pad = PATH_Output_Temp + "/small_warp_no_pad.nii.gz";
