@@ -1239,13 +1239,11 @@ int main(int argc, char* argv[])
   if (PATH_small_affine == "")
   {
     PATH_small_affine = PATH_Output_metrics_small + string("/small_Affine.mat");
+    param_Aff.output = PATH_small_affine;
+
+    // Run affine
+    GreedyRunner<2, double>::Run(param_Aff);
   }
-  param_Aff.output = PATH_small_affine;
-
-  // Run affine
-  GreedyRunner<2, double>::Run(param_Aff);
-
-
 
   // Diffeomorphic
   cout << "   Computing Diffeomorphic..." << '\n';
