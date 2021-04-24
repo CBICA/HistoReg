@@ -1382,27 +1382,24 @@ int main(int argc, char* argv[])
   int i = 0;
 
   // Read small affine
-  if (!fileExists(PATH_small_affine)) // go ahead only if file is not found, otherwise pick up from previous
+  smallAffFile.open(PATH_small_affine);
+  while (!smallAffFile.eof())
   {
-    smallAffFile.open(PATH_small_affine);
-    while (!smallAffFile.eof())
-    {
-      getline(smallAffFile, STRING);
+    getline(smallAffFile, STRING);
 
-      stringstream(STRING.substr(0, STRING.find(delimiter))) >> my_var[i];
-      STRING.erase(0, STRING.find(delimiter) + delimiter.length());
-      i++;
+    stringstream(STRING.substr(0, STRING.find(delimiter))) >> my_var[i];
+    STRING.erase(0, STRING.find(delimiter) + delimiter.length());
+    i++;
 
-      stringstream(STRING.substr(0, STRING.find(delimiter))) >> my_var[i];
-      STRING.erase(0, STRING.find(delimiter) + delimiter.length());
-      i++;
+    stringstream(STRING.substr(0, STRING.find(delimiter))) >> my_var[i];
+    STRING.erase(0, STRING.find(delimiter) + delimiter.length());
+    i++;
 
-      stringstream(STRING.substr(0, STRING.find(delimiter))) >> my_var[i];
-      STRING.erase(0, STRING.find(delimiter) + delimiter.length());
-      i++;
-    }
-    smallAffFile.close();
+    stringstream(STRING.substr(0, STRING.find(delimiter))) >> my_var[i];
+    STRING.erase(0, STRING.find(delimiter) + delimiter.length());
+    i++;
   }
+  smallAffFile.close();
 
   // Modify translation vector
   long double new_val_1 = my_var[2] * factor;
