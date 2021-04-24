@@ -624,6 +624,7 @@ int main(int argc, char* argv[])
   string PATH_Output_DIR;
   string PATH_source, PATH_source_temp;
   string PATH_target, PATH_target_temp;
+  string PATH_reslice, PATH_reslice_temp;
   string PATH_landmarks;
   string PATH_Output_Temp;
 
@@ -645,6 +646,7 @@ int main(int argc, char* argv[])
   int Output_provided = 0;
   int Fixed_provided = 0;
   int Moving_provided = 0;
+  int Reslice_provided = 0;
   int c2d_executable_provided = 1;
   int Flag_Full_Resolution = 0;
   int Flag_landmarks = 0;
@@ -681,6 +683,16 @@ int main(int argc, char* argv[])
           return 1;
         }
       }
+      if ((arg == "-rs") || (arg == "--reslice")) {
+          if (i + 1 < argc) { // Make sure we aren't at the end of argv!
+              PATH_reslice_temp = argv[++i]; // Increment 'i' so we don't get the argument as the next argv[i].
+              Reslice_provided = 1;
+          }
+          else { // Uh-oh, there was no argument to the destination option.
+              cerr << "--reslice option requires one argument." << '\n';
+              return 1;
+          }
+      }
       if ((arg == "-f") || (arg == "--fixed")) {
         if (i + 1 < argc) { // Make sure we aren't at the end of argv!
           PATH_target_temp = argv[++i]; // Increment 'i' so we don't get the argument as the next argv[i].
@@ -694,7 +706,7 @@ int main(int argc, char* argv[])
       if ((arg == "-F") || (arg == "--FullResolution")) {
         Flag_Full_Resolution = 1;
       }
-      if ((arg == "-S") || (arg == "--SullResolution")) {
+      if ((arg == "-S") || (arg == "--SmallResolution")) {
         Flag_Small_Resolution = 1;
       }
       if ((arg == "-r") || (arg == "--resample")) {
@@ -898,11 +910,15 @@ int main(int argc, char* argv[])
 
   PATH_target = PATH_Output_Temp + string("/converted_target.nii.gz");
   PATH_source = PATH_Output_Temp + string("/converted_source.nii.gz");
-
+  if (Reslice_provided == 1) {
+      PATH_reslice = PATH_Output_Temp + string("/converted_reslice.nii.gz");
+  }
   // doing this to ensure any file type supported by ITK can be used
   WriteImage(ReadImage(PATH_target_temp), PATH_target);
   WriteImage(ReadImage(PATH_source_temp), PATH_source);
-
+  if (Reslice_provided == 1) {
+      WriteImage(ReadImage(PATH_reslice_temp), PATH_reslice);
+  }
 
   string command_source = c2d_executable + string(" ") + PATH_target + string(" ") + Resampling_command + string(" ") + PATH_small_target;
   string command_target = c2d_executable + string(" ") + PATH_source + string(" ") + Resampling_command + string(" ") + PATH_small_source;
@@ -1136,7 +1152,7 @@ int main(int argc, char* argv[])
 
   end_intermediate = chrono::system_clock::now();
   duration = chrono::duration_cast<chrono::seconds> (end_intermediate - start_intermediate).count();
-  cout << "Preprocessing took : " << duration << " secondes." << '\n';
+  cout << "Preprocessing took : " << duration << " seconds." << '\n';
 
   // Print sizes
   // cout << "   Small_target_W : " << Size_small_target_padded_W << '\n';
@@ -1247,7 +1263,7 @@ int main(int argc, char* argv[])
 
   end_intermediate = chrono::system_clock::now();
   duration = chrono::duration_cast<chrono::seconds> (end_intermediate - start_intermediate).count();
-  cout << "Registration took : " << duration << " secondes." << '\n';
+  cout << "Registration took : " << duration << " seconds." << '\n';
 
   // Define interpolation as linear, same idea as transformation
   ResliceSpec Reslices_images;
@@ -1291,7 +1307,7 @@ int main(int argc, char* argv[])
 
     end_intermediate = chrono::system_clock::now();
     duration = chrono::duration_cast<chrono::seconds> (end_intermediate - start_intermediate).count();
-    cout << "Apply transformation on small image took : " << duration << " secondes." << '\n';
+    cout << "Apply transformation on small image took : " << duration << " seconds." << '\n';
 
     // Converting to PNGs
     if (Flag_PNGs == 1) {
@@ -1315,7 +1331,7 @@ int main(int argc, char* argv[])
 
       end_intermediate = chrono::system_clock::now();
       duration = chrono::duration_cast<chrono::seconds> (end_intermediate - start_intermediate).count();
-      cout << "Converting result to PNGs images took : " << duration << " secondes." << '\n';
+      cout << "Converting result to PNGs images took : " << duration << " seconds." << '\n';
     }
   }
 
@@ -1405,7 +1421,7 @@ int main(int argc, char* argv[])
   cout << "   Warp done." << '\n';
   end_intermediate = chrono::system_clock::now();
   duration = chrono::duration_cast<chrono::seconds> (end_intermediate - start_intermediate).count();
-  cout << "Adapt transformation to original image took : " << duration << " secondes." << '\n';
+  cout << "Adapt transformation to original image took : " << duration << " seconds." << '\n';
 
   if (Flag_landmarks == 1) {
     cout << "   Apply transformation to landmarks..." << '\n';
@@ -1540,7 +1556,7 @@ int main(int argc, char* argv[])
     cout << "   Done." << '\n';
     end_intermediate = chrono::system_clock::now();
     duration = chrono::duration_cast<chrono::seconds> (end_intermediate - start_intermediate).count();
-    cout << "Apply transformation to landmarks took : " << duration << " secondes." << '\n';
+    cout << "Apply transformation to landmarks took : " << duration << " seconds." << '\n';
   }
 
   if (Flag_Full_Resolution == 1) {
@@ -1549,79 +1565,159 @@ int main(int argc, char* argv[])
     // Convert source and target to niftis with good orientation, pixel spacing ,origin ..
     cout << "   Apply registration to full resolution RGB images." << '\n';
     cout << "   Adapting source..." << '\n';
+    if (Reslice_provided == 1) {
+        string PATH_new_reslice = PATH_Output_niftis_full + "/new_reslice.nii.gz";
+        command = c2d_executable + " -mcs " + PATH_reslice +
+                  " -foreach -orient LP -spacing 1x1mm -origin 0x0mm -endfor -omc " + PATH_new_reslice;
+        system(command.c_str());
+        cout << "   Done." << '\n';
 
-    string PATH_new_source = PATH_Output_niftis_full + "/new_source.nii.gz";
-    command = c2d_executable + " -mcs " + PATH_source + " -foreach -orient LP -spacing 1x1mm -origin 0x0mm -endfor -omc " + PATH_new_source;
-    system(command.c_str());
-    cout << "   Done." << '\n';
+        cout << "   Adapting target..." << '\n';
+        string PATH_new_target = PATH_Output_niftis_full + "/new_target.nii.gz";
+        command = c2d_executable + " -mcs " + PATH_target +
+                  " -foreach -orient LP -spacing 1x1mm -origin 0x0mm -endfor -omc " + PATH_new_target;
+        system(command.c_str());
+        cout << "   Done." << '\n';
 
-    cout << "   Adapting target..." << '\n';
-    string PATH_new_target = PATH_Output_niftis_full + "/new_target.nii.gz";
-    command = c2d_executable + " -mcs " + PATH_target + " -foreach -orient LP -spacing 1x1mm -origin 0x0mm -endfor -omc " + PATH_new_target;
-    system(command.c_str());
-    cout << "   Done." << '\n';
+        cout << "   Applying registration..." << '\n';
+        string PATH_registered_image = PATH_Output_niftis_full + "/registeredImage.nii.gz";
 
-    cout << "   Applying registration..." << '\n';
-    string PATH_registered_image = PATH_Output_niftis_full + "/registeredImage.nii.gz";
+        // Reset param
+        GreedyParameters param_reslice_full;
+        GreedyParameters::SetToDefaults(param_reslice_full);
 
-    // Reset param
-    GreedyParameters param_reslice_full;
-    GreedyParameters::SetToDefaults(param_reslice_full);
+        // Define dimension and mode
+        param_reslice_full.dim = 2;
+        param_reslice_full.mode = GreedyParameters::RESLICE;
 
-    // Define dimension and mode
-    param_reslice_full.dim = 2;
-    param_reslice_full.mode = GreedyParameters::RESLICE;
+        // Define transformation to be applied
+        ResliceSpec Reslices_images_full;
+        vector <TransformSpec> Transformations_full;
+        TransformSpec TransformDiffFull, TransformAffFull;
 
-    // Define transformation to be applied
-    ResliceSpec Reslices_images_full;
-    vector<TransformSpec> Transformations_full;
-    TransformSpec TransformDiffFull, TransformAffFull;
+        TransformDiffFull.filename = PATH_big_warp;
+        TransformAffFull.filename = PATH_affine;
 
-    TransformDiffFull.filename = PATH_big_warp;
-    TransformAffFull.filename = PATH_affine;
+        Transformations_full.push_back(TransformDiffFull);
+        Transformations_full.push_back(TransformAffFull);
+        param_reslice_full.reslice_param.transforms = Transformations_full;
 
-    Transformations_full.push_back(TransformDiffFull);
-    Transformations_full.push_back(TransformAffFull);
-    param_reslice_full.reslice_param.transforms = Transformations_full;
+        // Define source, target, interpolation mode and output
+        Reslices_images_full.moving = PATH_new_reslice;
+        Reslices_images_full.interp = Interp;
+        Reslices_images_full.output = PATH_registered_image;
 
-    // Define source, target, interpolation mode and output
-    Reslices_images_full.moving = PATH_new_source;
-    Reslices_images_full.interp = Interp;
-    Reslices_images_full.output = PATH_registered_image;
+        param_reslice_full.reslice_param.images.push_back(Reslices_images_full);
+        param_reslice_full.reslice_param.ref_image = PATH_new_target;
 
-    param_reslice_full.reslice_param.images.push_back(Reslices_images_full);
-    param_reslice_full.reslice_param.ref_image = PATH_new_target;
+        // Run greedy
+        GreedyRunner<2, double>::Run(param_reslice_full);
+        cout << "   Done." << '\n';
+        end_intermediate = chrono::system_clock::now();
+        duration = chrono::duration_cast<chrono::seconds>(end_intermediate - start_intermediate).count();
+        cout << "Apply transformation to original images took : " << duration << " seconds." << '\n';
+        // Converting to PNGs
+        if (Flag_PNGs == 1) {
+            start_intermediate = chrono::system_clock::now();
 
-    // Run greedy
-    GreedyRunner<2, double>::Run(param_reslice_full);
-    cout << "   Done." << '\n';
-    end_intermediate = chrono::system_clock::now();
-    duration = chrono::duration_cast<chrono::seconds> (end_intermediate - start_intermediate).count();
-    cout << "Apply transformation to original images took : " << duration << " secondes." << '\n';
+            cout << "Converting images into PNGs..." << '\n';
+            string PATH_new_target_png = PATH_Output_PNGs_full_resolution + "/new_target.png";
+            command = c2d_executable + " -mcs " + PATH_new_target + " -foreach -type uchar -endfor -omc " + PATH_new_target_png;
+            system(command.c_str());
+            cout << "   Target done..." << '\n';
 
-    // Converting to PNGs
-    if (Flag_PNGs == 1) {
-      start_intermediate = chrono::system_clock::now();
+            string PATH_new_reslice_png = PATH_Output_PNGs_full_resolution + "/new_reslice.png";
+            command = c2d_executable + " -mcs " + PATH_new_reslice + " -foreach -type uchar -endfor -omc " + PATH_new_reslice_png;
+            system(command.c_str());
+            cout << "   Source done..." << '\n';
 
-      cout << "Converting images into PNGs..." << '\n';
-      string PATH_new_target_png = PATH_Output_PNGs_full_resolution + "/new_target.png";
-      command = c2d_executable + " -mcs " + PATH_new_target + " -foreach -type uchar -endfor -omc " + PATH_new_target_png;
-      system(command.c_str());
-      cout << "   Target done..." << '\n';
+            string PATH_registered_image_png = PATH_Output_PNGs_full_resolution + "/registeredImage.png";
+            command = c2d_executable + " -mcs " + PATH_registered_image + " -foreach -type uchar -endfor -omc " + PATH_registered_image_png;
+            system(command.c_str());
+            cout << "   Registered image done." << '\n';
 
-      string PATH_new_source_png = PATH_Output_PNGs_full_resolution + "/new_source.png";
-      command = c2d_executable + " -mcs " + PATH_new_source + " -foreach -type uchar -endfor -omc " + PATH_new_source_png;
-      system(command.c_str());
-      cout << "   Source done..." << '\n';
+            end_intermediate = chrono::system_clock::now();
+            duration = chrono::duration_cast<chrono::seconds> (end_intermediate - start_intermediate).count();
+            cout << "Converting result to PNGs images took : " << duration << " seconds." << '\n';
+        }
 
-      string PATH_registered_image_png = PATH_Output_PNGs_full_resolution + "/registeredImage.png";
-      command = c2d_executable + " -mcs " + PATH_registered_image + " -foreach -type uchar -endfor -omc " + PATH_registered_image_png;
-      system(command.c_str());
-      cout << "   Registered image done." << '\n';
 
-      end_intermediate = chrono::system_clock::now();
-      duration = chrono::duration_cast<chrono::seconds> (end_intermediate - start_intermediate).count();
-      cout << "Converting result to PNGs images took : " << duration << " secondes." << '\n';
+    } else {
+        string PATH_new_source = PATH_Output_niftis_full + "/new_source.nii.gz";
+        command = c2d_executable + " -mcs " + PATH_source +
+                  " -foreach -orient LP -spacing 1x1mm -origin 0x0mm -endfor -omc " + PATH_new_source;
+        system(command.c_str());
+        cout << "   Done." << '\n';
+
+        cout << "   Adapting target..." << '\n';
+        string PATH_new_target = PATH_Output_niftis_full + "/new_target.nii.gz";
+        command = c2d_executable + " -mcs " + PATH_target +
+                  " -foreach -orient LP -spacing 1x1mm -origin 0x0mm -endfor -omc " + PATH_new_target;
+        system(command.c_str());
+        cout << "   Done." << '\n';
+
+        cout << "   Applying registration..." << '\n';
+        string PATH_registered_image = PATH_Output_niftis_full + "/registeredImage.nii.gz";
+
+        // Reset param
+        GreedyParameters param_reslice_full;
+        GreedyParameters::SetToDefaults(param_reslice_full);
+
+        // Define dimension and mode
+        param_reslice_full.dim = 2;
+        param_reslice_full.mode = GreedyParameters::RESLICE;
+
+        // Define transformation to be applied
+        ResliceSpec Reslices_images_full;
+        vector <TransformSpec> Transformations_full;
+        TransformSpec TransformDiffFull, TransformAffFull;
+
+        TransformDiffFull.filename = PATH_big_warp;
+        TransformAffFull.filename = PATH_affine;
+
+        Transformations_full.push_back(TransformDiffFull);
+        Transformations_full.push_back(TransformAffFull);
+        param_reslice_full.reslice_param.transforms = Transformations_full;
+
+        // Define source, target, interpolation mode and output
+        Reslices_images_full.moving = PATH_new_source;
+        Reslices_images_full.interp = Interp;
+        Reslices_images_full.output = PATH_registered_image;
+
+        param_reslice_full.reslice_param.images.push_back(Reslices_images_full);
+        param_reslice_full.reslice_param.ref_image = PATH_new_target;
+
+        // Run greedy
+        GreedyRunner<2, double>::Run(param_reslice_full);
+        cout << "   Done." << '\n';
+        end_intermediate = chrono::system_clock::now();
+        duration = chrono::duration_cast<chrono::seconds>(end_intermediate - start_intermediate).count();
+        cout << "Apply transformation to original images took : " << duration << " seconds." << '\n';
+        // Converting to PNGs
+        if (Flag_PNGs == 1) {
+            start_intermediate = chrono::system_clock::now();
+
+            cout << "Converting images into PNGs..." << '\n';
+            string PATH_new_target_png = PATH_Output_PNGs_full_resolution + "/new_target.png";
+            command = c2d_executable + " -mcs " + PATH_new_target + " -foreach -type uchar -endfor -omc " + PATH_new_target_png;
+            system(command.c_str());
+            cout << "   Target done..." << '\n';
+
+            string PATH_new_source_png = PATH_Output_PNGs_full_resolution + "/new_source.png";
+            command = c2d_executable + " -mcs " + PATH_new_source + " -foreach -type uchar -endfor -omc " + PATH_new_source_png;
+            system(command.c_str());
+            cout << "   Source done..." << '\n';
+
+            string PATH_registered_image_png = PATH_Output_PNGs_full_resolution + "/registeredImage.png";
+            command = c2d_executable + " -mcs " + PATH_registered_image + " -foreach -type uchar -endfor -omc " + PATH_registered_image_png;
+            system(command.c_str());
+            cout << "   Registered image done." << '\n';
+
+            end_intermediate = chrono::system_clock::now();
+            duration = chrono::duration_cast<chrono::seconds> (end_intermediate - start_intermediate).count();
+            cout << "Converting result to PNGs images took : " << duration << " seconds." << '\n';
+        }
+
     }
   }
 
@@ -1633,7 +1729,7 @@ int main(int argc, char* argv[])
 
   end_script = chrono::system_clock::now();
   duration = chrono::duration_cast<chrono::seconds> (end_script - start_script).count();
-  cout << "It took " << duration << " secondes to run." << '\n';
+  cout << "It took " << duration << " seconds to run." << '\n';
 
   return EXIT_SUCCESS;
 }
