@@ -994,7 +994,7 @@ int main(int argc, char* argv[])
   // cout << "   Small_source_W : " << Size_small_source_W << '\n';
   // cout << "   Small_source_H : " << Size_small_source_H << '\n';
 
-  // Get intensities from 4 cornees
+  // Get intensities from 4 corners
   // Computes size kernel
   int kernel_W = stoi(Size_small_target_W) / stoi(Kernel_Divider);
   int kernel_H = stoi(Size_small_target_H) / stoi(Kernel_Divider);
@@ -1019,7 +1019,7 @@ int main(int argc, char* argv[])
   // We want to pad with intensity as close as the background as possible.
   // Extract mean and std of the intensities of the background (4 square of the size of the kernel at each corners)
 
-  // Create the command to get the intensites of the corners
+  // Create the command to get the intensities of the corners
   string Four_corners_command = c2d_executable + string(" ") + PATH_small_target + string(" -dup -cmv -popas Y -popas X -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c00 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh 0 ") + to_string(kernel) + string(" 1 0 -times -popas c01 -push X -thresh ") + to_string(Size_W_minus_kernel_target) + string(" ") + Size_small_target_W + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c11 -push X -thresh 0 ") + to_string(kernel) + string(" 1 0 -push Y -thresh ") + to_string(Size_H_minus_kernel_target) + string(" ") + Size_small_target_H + string(" 1 0 -times -popas c10 -push c00 -push c01 -push c11 -push c10 -add -add -add -lstat");
 
   // run command and get output
@@ -1030,7 +1030,7 @@ int main(int argc, char* argv[])
   string::iterator new_end = unique(stats_target.begin(), stats_target.end(), BothAreSpaces);
   stats_target.erase(new_end, stats_target.end());
 
-  //Extract meand and std
+  //Extract mean and std
   delimiter = " ";
   stats_target.erase(0, stats_target.find(delimiter) + delimiter.length());
   stats_target.erase(0, stats_target.find(delimiter) + delimiter.length());
@@ -1053,7 +1053,7 @@ int main(int argc, char* argv[])
   new_end = unique(stats_source.begin(), stats_source.end(), BothAreSpaces);
   stats_source.erase(new_end, stats_source.end());
 
-  //Extract meand and std
+  //Extract mean and std
   delimiter = " ";
   stats_source.erase(0, stats_source.find(delimiter) + delimiter.length());
   stats_source.erase(0, stats_source.find(delimiter) + delimiter.length());
@@ -1122,7 +1122,7 @@ int main(int argc, char* argv[])
   // b/
   // Inverse this mask (1 for padded pixels and 0 for original pixels)
   // Replace every pixels values in the first mask by 1
-  // Then scale this mask by the mean of the intenistites in the 4 corners and add a gaussian noise of the standart deviation of this intensity.
+  // Then scale this mask by the mean of the intensities in the 4 corners and add a gaussian noise of the standart deviation of this intensity.
   // Finaly multiply both mask together so final result have intensity 0 for each pixels that belongs to the original images and intensity close to the background for each padded pixels.
   command = c2d_executable + string(" ") + PATH_mask_target + string(" -replace 0 1 1 0 -popas invmask ") + PATH_mask_target + string(" -replace 0 1 1 1 -scale ") + mean_target + string(" -noise-gaussian ") + std_target + string(" -push invmask -times -o ") + PATH_mask_target;
   system(command.c_str());
