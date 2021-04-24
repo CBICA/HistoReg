@@ -779,10 +779,6 @@ int main(int argc, char* argv[])
           return 1;
         }
       }
-      /*
-          << "\t-sa,--small_affine [PATH to mat]\tPATH to 'small_affine.mat' file.\n"
-    << "\t-fa,--full_affine [PATH to mat]\tPATH to 'full_affine.mat' file.\n"
-      */
       if ((arg == "-sa") || (arg == "--small_affine")) {
         if (i + 1 < argc) { // Make sure we aren't at the end of argv!
           PATH_small_affine = argv[++i];
