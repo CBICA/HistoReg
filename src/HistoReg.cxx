@@ -1279,6 +1279,7 @@ int main(int argc, char* argv[])
   param_Diff.sigma_post.sigma = stod(s2);
 
   // Define output
+  bool run_warp = false;
   if (PATH_small_warp == "")
   {
     PATH_small_warp = PATH_Output_metrics_small + string("/small_warp.nii.gz");
@@ -1288,11 +1289,19 @@ int main(int argc, char* argv[])
     PATH_small_inv_warp = PATH_Output_metrics_small + string("/small_inv_warp.nii.gz");
   }
 
+  if (fileExists(PATH_small_warp) || fileExists(PATH_small_inv_warp))
+  {
+    run_warp = true;
+  }
+
   param_Diff.inverse_warp = PATH_small_inv_warp;
   param_Diff.output = PATH_small_warp;
 
-  // Run Diffeomorphic registration
-  GreedyRunner<2, double>::Run(param_Diff);
+  // Run Diffeomorphic registration if either PATH_small_warp or PATH_small_inv_warp are not present 
+  if (run_warp)
+  {
+    GreedyRunner<2, double>::Run(param_Diff);
+  }
 
   end_intermediate = chrono::system_clock::now();
   duration = chrono::duration_cast<chrono::seconds> (end_intermediate - start_intermediate).count();
