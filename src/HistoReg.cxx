@@ -79,15 +79,6 @@ using RGBPixelType = itk::RGBPixel<unsigned char>;
 
 using RGBImageType = itk::Image<RGBPixelType, Dimension>;
 
-bool fileExists(const std::string &fName)
-{
-  std::ifstream file_exists(fName.c_str());
-  if (file_exists.good())
-    return true;
-  else
-    return false;
-}
-
 int removeDirectoryRecursively(const std::string &dirname, bool bDeleteSubdirectories = true)
 {
 #if defined(_WIN32)
@@ -612,10 +603,7 @@ static void show_usage(string name)
     << "\t-i,--iteration [VALUE]\tNumber of iteration used for initial brute search before affine registration.\n\t\tMust be a integer. Default: 5000.\n"
     << "\t-k,--kernel [VALUE]\tDefine size of the kernel, it will be the size of the resampled image divided by this value.\n\t\tMust be an integer. Small values will increase size of the kernel and so increase runtime.\n"
     << "\t-t,--tmp_directory [PATH to directory]\tPATH to temporary directory, stores temporary files, folder will be created if it doesn't exist.\n"
-    << "\t-s1,--smoothing_1 (-s2,--smoothing_2) [VALUE]\tDefine the value of the smoothing parameters for deformable registration. (s1 : 'Metric gradient regularization' and s2 : 'Warp regularization')\n\t\tMust be float or integers, default value s1 = 6 and s2 = 5.\n"
-    << "\t-sa,--small_affine [PATH to mat]\tPATH to 'small_affine.mat' file.\n"
-    << "\t-fa,--full_affine [PATH to mat]\tPATH to 'full_affine.mat' file.\n"
-    ;
+    << "\t-s1,--smoothing_1 (-s2,--smoothing_2) [VALUE]\tDefine the value of the smoothing parameters for deformable registration. (s1 : 'Metric gradient regularization' and s2 : 'Warp regularization')\n\t\tMust be float or integers, default value s1 = 6 and s2 = 5.\n";
 }
 
 int main(int argc, char* argv[])
@@ -646,7 +634,6 @@ int main(int argc, char* argv[])
   string iteration = "5000";
   string s1 = "6";
   string s2 = "5";
-  string PATH_small_affine, PATH_affine;
 
   // executables
   string c2d_executable = getExecutablePath() + "/c2d";
@@ -785,20 +772,6 @@ int main(int argc, char* argv[])
         else { // Uh-oh, there was no argument to the destination option.
           cerr << "--smoothing_2 option requires one argument." << '\n';
           return 1;
-        }
-      }
-      /*
-          << "\t-sa,--small_affine [PATH to mat]\tPATH to 'small_affine.mat' file.\n"
-    << "\t-fa,--full_affine [PATH to mat]\tPATH to 'full_affine.mat' file.\n"
-      */
-      if ((arg == "-sa") || (arg == "--small_affine")) {
-        if (i + 1 < argc) { // Make sure we aren't at the end of argv!
-          PATH_small_affine = argv[++i];
-        }
-      }
-      if ((arg == "-fa") || (arg == "--full_affine")) {
-        if (i + 1 < argc) { // Make sure we aren't at the end of argv!
-          PATH_affine = argv[++i];
         }
       }
       if ((arg == "-P") || (arg == "--PNG")) {
@@ -1237,10 +1210,7 @@ int main(int argc, char* argv[])
   param_Aff.gradient_mask_trim_radius = kernel_radius;
 
   // Define output
-  if (PATH_small_affine == "")
-  {
-    PATH_small_affine = PATH_Output_metrics_small + string("/small_Affine.mat");
-  }
+  string PATH_small_affine = PATH_Output_metrics_small + string("/small_Affine.mat");
   param_Aff.output = PATH_small_affine;
 
   // Run affine
@@ -1379,45 +1349,37 @@ int main(int argc, char* argv[])
   int i = 0;
 
   // Read small affine
-  if (!fileExists(PATH_small_affine)) // go ahead only if file is not found, otherwise pick up from previous
+  smallAffFile.open(PATH_small_affine);
+  while (!smallAffFile.eof())
   {
-    smallAffFile.open(PATH_small_affine);
-    while (!smallAffFile.eof())
-    {
-      getline(smallAffFile, STRING);
+    getline(smallAffFile, STRING);
 
-      stringstream(STRING.substr(0, STRING.find(delimiter))) >> my_var[i];
-      STRING.erase(0, STRING.find(delimiter) + delimiter.length());
-      i++;
+    stringstream(STRING.substr(0, STRING.find(delimiter))) >> my_var[i];
+    STRING.erase(0, STRING.find(delimiter) + delimiter.length());
+    i++;
 
-      stringstream(STRING.substr(0, STRING.find(delimiter))) >> my_var[i];
-      STRING.erase(0, STRING.find(delimiter) + delimiter.length());
-      i++;
+    stringstream(STRING.substr(0, STRING.find(delimiter))) >> my_var[i];
+    STRING.erase(0, STRING.find(delimiter) + delimiter.length());
+    i++;
 
-      stringstream(STRING.substr(0, STRING.find(delimiter))) >> my_var[i];
-      STRING.erase(0, STRING.find(delimiter) + delimiter.length());
-      i++;
-    }
-    smallAffFile.close();
+    stringstream(STRING.substr(0, STRING.find(delimiter))) >> my_var[i];
+    STRING.erase(0, STRING.find(delimiter) + delimiter.length());
+    i++;
   }
+  smallAffFile.close();
 
   // Modify translation vector
   long double new_val_1 = my_var[2] * factor;
   long double new_val_2 = my_var[5] * factor;
 
-  // Write new matrix adapted to full resolution images 
-  if (PATH_affine == "")
-  {
-    PATH_affine = PATH_Output_metrics_full + "/Affine.mat";
-  }
-  if (!fileExists(PATH_affine)) // go ahead only if file is not found, otherwise pick up from previous
-  {
-    ofstream AffineFile;
-    AffineFile.open(PATH_affine);
-    AffineFile << to_string(my_var[0]) + " " + to_string(my_var[1]) + " " + to_string(new_val_1) + '\n' + to_string(my_var[3]) + " " + to_string(my_var[4]) + " " + to_string(new_val_2) + '\n' + to_string(my_var[6]) + to_string(my_var[7]) + " " + to_string(my_var[8]);
-    AffineFile.close();
-    std::cout << "   Affine done." << '\n';
-  }
+  // Write new matrix adapted to full resolution images
+  string PATH_affine = PATH_Output_metrics_full + "/Affine.mat";
+  ofstream AffineFile;
+  AffineFile.open(PATH_affine);
+  AffineFile << to_string(my_var[0]) + " " + to_string(my_var[1]) + " " + to_string(new_val_1) + '\n' + to_string(my_var[3]) + " " + to_string(my_var[4]) + " " + to_string(new_val_2) + '\n' + to_string(my_var[6]) + to_string(my_var[7]) + " " + to_string(my_var[8]);
+  AffineFile.close();
+
+  cout << "   Affine done." << '\n';
 
   // Warp 
   // We want to apply transformation to the original images that are NOT PADDED.

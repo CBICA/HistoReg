@@ -40,7 +40,6 @@ This work is partly supported by the National Institutes of Health under grant a
 ## Build Requirements 
 
 - CMake: 2.8.12+
-    - Note that 3.9 doesn't work: https://github.com/CBICA/HistoReg/issues/23#issuecomment-824747886
 - C++ compiler: tested on GCC 4.9.2 and 7.4.0; MSVC 2015 on Windows
 
 ## Download and Compile
