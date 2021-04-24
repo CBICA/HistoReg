@@ -1243,7 +1243,7 @@ int main(int argc, char* argv[])
 
   param_Aff.output = PATH_small_affine;
 
-  // Run affine if PATH_small_affine is abset
+  // Run affine if PATH_small_affine is absent
   if (!fileExists(PATH_small_affine))
   {
     GreedyRunner<2, double>::Run(param_Aff);
