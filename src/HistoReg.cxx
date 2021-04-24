@@ -1549,7 +1549,7 @@ int main(int argc, char* argv[])
     param_lm.reslice_param.meshes.push_back(Reslices_lm_full);
     param_lm.reslice_param.ref_image = PATH_small_source;
 
-    // Define transofrmations
+    // Define transformations
     vector<TransformSpec> Transformations_lm;
     TransformSpec TransformDiffLM, TransformAffLM;
     TransformDiffLM.filename = PATH_small_inv_warp;
