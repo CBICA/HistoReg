@@ -711,7 +711,7 @@ int main(int argc, char* argv[])
       if ((arg == "-F") || (arg == "--FullResolution")) {
         Flag_Full_Resolution = 1;
       }
-      if ((arg == "-S") || (arg == "--SullResolution")) {
+      if ((arg == "-S") || (arg == "--SmallResolution")) {
         Flag_Small_Resolution = 1;
       }
       if ((arg == "-r") || (arg == "--resample")) {
