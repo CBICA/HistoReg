@@ -128,7 +128,7 @@ You can then compare the warped landmarks (`Output/CD68_registered_to_CD4/warped
 
 ## References
 
-[1] L. Venet, S. Pati et al., "Accurate and Robust Alignment of Differently Stained Histologic Images Based on Greedy Diffeomorphic Registration," in Applied Sciences. 2021. DOI: [10.3390/app11041892](https://doi.org/10.3390/app11041892).
+[1] L. Venet, S. Pati et al., "Accurate and Robust Alignment of Differently Stained Histologic Images Based on Greedy Diffeomorphic Registration," in Applied Sciences, 2021. DOI: [10.3390/app11041892](https://doi.org/10.3390/app11041892).
 
 [2] J. Borovec et al., "ANHIR: Automatic Non-rigid Histological Image Registration Challenge," in IEEE Transactions on Medical Imaging, 2020. DIO: [10.1109/TMI.2020.2986331](http://doi.org/10.1109/TMI.2020.2986331).
 
